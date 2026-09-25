@@ -209,21 +209,6 @@
       letter-spacing:.28em;
       color:#727a7d
     }
-    .elevator-indicator{
-      position:absolute;
-      z-index:3;
-      left:50%;
-      top:31%;
-      transform:translateX(-50%);
-      padding:5px 10px;
-      border:1px solid rgba(129,35,35,.32);
-      background:rgba(7,4,4,.72);
-      color:#9d3838;
-      font:600 clamp(8px,1vw,11px) monospace;
-      letter-spacing:.14em;
-      text-shadow:0 0 8px rgba(130,0,0,.42);
-      opacity:.78
-    }
     .storybox{
       position:relative;
       z-index:5;
@@ -266,9 +251,209 @@
       border-radius:50%;
       backdrop-filter:blur(4px)
     }
+    .phone-overlay{
+      position:absolute;
+      inset:0;
+      z-index:20;
+      display:none;
+      align-items:flex-end;
+      justify-content:center;
+      padding:0 16px max(14px,env(safe-area-inset-bottom));
+      background:rgba(0,0,0,.58);
+      backdrop-filter:blur(2px);
+      opacity:0;
+      transition:opacity .22s ease
+    }
+    .phone-overlay.open{
+      display:flex;
+      opacity:1
+    }
+    .phone-device{
+      width:min(92vw,390px);
+      height:min(78dvh,720px);
+      border-radius:34px 34px 20px 20px;
+      border:1px solid rgba(190,196,198,.18);
+      background:
+        linear-gradient(180deg,#111416 0%,#07090a 100%);
+      box-shadow:
+        0 -10px 45px rgba(0,0,0,.75),
+        inset 0 0 0 2px rgba(255,255,255,.025);
+      transform:translateY(105%);
+      animation:raisePhone .38s cubic-bezier(.2,.75,.25,1) forwards;
+      overflow:hidden;
+      position:relative
+    }
+    @keyframes raisePhone{
+      to{transform:translateY(0)}
+    }
+    .phone-speaker{
+      position:absolute;
+      z-index:2;
+      left:50%;
+      top:10px;
+      width:54px;
+      height:4px;
+      border-radius:999px;
+      transform:translateX(-50%);
+      background:#25292b
+    }
+    .phone-screen{
+      position:absolute;
+      inset:18px 12px 12px;
+      border-radius:24px 24px 12px 12px;
+      overflow:hidden;
+      background:
+        radial-gradient(circle at 50% -10%,rgba(79,103,112,.12),transparent 38%),
+        linear-gradient(180deg,#0a0e10,#050607);
+      color:#d7dcdd;
+      font-family:system-ui,sans-serif;
+      box-shadow:inset 0 0 0 1px rgba(255,255,255,.035)
+    }
+    .phone-status{
+      height:38px;
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      padding:0 14px;
+      border-bottom:1px solid rgba(255,255,255,.055);
+      color:#8d9698;
+      font-size:10px;
+      letter-spacing:.12em
+    }
+    .phone-no-signal{
+      color:#9f5555
+    }
+    .phone-view{
+      position:absolute;
+      inset:38px 0 52px;
+      padding:18px 16px;
+      overflow:auto
+    }
+    .phone-view.hidden{display:none}
+    .phone-kicker{
+      font-size:9px;
+      letter-spacing:.24em;
+      color:#657073;
+      text-transform:uppercase;
+      margin-bottom:8px
+    }
+    .phone-title{
+      margin:0 0 18px;
+      font-size:22px;
+      font-weight:500;
+      letter-spacing:.04em;
+      color:#dfe3e3
+    }
+    .phone-thread{
+      width:100%;
+      padding:14px 12px;
+      border:1px solid rgba(255,255,255,.07);
+      background:rgba(255,255,255,.025);
+      text-align:left;
+      color:inherit;
+      border-radius:5px
+    }
+    .phone-thread.unread{
+      border-left:2px solid #7e2529;
+      background:linear-gradient(90deg,rgba(126,37,41,.10),rgba(255,255,255,.018))
+    }
+    .thread-row{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:12px
+    }
+    .thread-name{
+      font-size:14px;
+      font-weight:600;
+      color:#e1e4e4
+    }
+    .thread-time{
+      font-size:9px;
+      color:#6e7779;
+      letter-spacing:.08em
+    }
+    .thread-preview{
+      margin-top:7px;
+      font-size:11px;
+      line-height:1.4;
+      color:#899294
+    }
+    .message-back{
+      background:none;
+      border:0;
+      padding:0;
+      color:#8b9597;
+      font-size:10px;
+      letter-spacing:.15em;
+      text-transform:uppercase
+    }
+    .message-header{
+      margin:14px 0 18px;
+      padding-bottom:12px;
+      border-bottom:1px solid rgba(255,255,255,.06)
+    }
+    .message-from{
+      font-size:17px;
+      font-weight:600;
+      color:#e0e4e4
+    }
+    .message-meta{
+      margin-top:4px;
+      font-size:9px;
+      color:#697275;
+      letter-spacing:.1em;
+      text-transform:uppercase
+    }
+    .message-bubble{
+      padding:16px 15px;
+      border-radius:4px;
+      background:linear-gradient(180deg,rgba(94,107,111,.12),rgba(255,255,255,.025));
+      border:1px solid rgba(255,255,255,.06);
+      color:#cfd4d4;
+      font-size:13px;
+      line-height:1.65;
+      text-shadow:0 1px 5px #000
+    }
+    .message-warning{
+      margin-top:14px;
+      font-size:9px;
+      color:#7d8587;
+      letter-spacing:.14em;
+      text-transform:uppercase
+    }
+    .phone-bottom{
+      position:absolute;
+      left:0;
+      right:0;
+      bottom:0;
+      height:52px;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      border-top:1px solid rgba(255,255,255,.055);
+      background:rgba(5,7,8,.94)
+    }
+    .lower-phone{
+      border:0;
+      background:none;
+      color:#8a9395;
+      font-size:9px;
+      letter-spacing:.22em;
+      text-transform:uppercase;
+      padding:12px 24px
+    }
+    .objective.updated{
+      animation:objectiveUpdate 1.4s ease
+    }
+    @keyframes objectiveUpdate{
+      0%{opacity:.2;transform:translateX(-7px)}
+      30%{opacity:1;transform:translateX(0)}
+      55%{text-shadow:0 0 10px rgba(255,255,255,.25),0 2px 10px #000}
+      100%{opacity:1;text-shadow:0 2px 10px #000}
+    }
     @media (orientation:portrait){
       .prologue-scene{background-position:center center}
-      .elevator-indicator{top:28%}
       .storybox{width:90vw}
     }
     @media (orientation:landscape) and (max-height:600px){
@@ -1119,12 +1304,50 @@
   <section id="game" class="screen">
     <div class="prologue-scene"></div>
     <div class="chapter">Prologue • Wake Up</div>
-    <div class="objective">Find an exit</div>
-    <div class="elevator-indicator">FLOOR — H</div>
+    <div id="objectiveText" class="objective">Find an exit</div>
     <div class="game-actions"><button id="homeBtn" aria-label="Return to menu">⌂</button></div>
     <div class="storybox">
       <p id="storyText">The fluorescent light stutters overhead. Rain echoes somewhere beyond the walls, but every window opens onto darkness.</p>
       <button id="nextBtn">Look down the hallway</button>
+    </div>
+
+    <div id="phoneOverlay" class="phone-overlay" aria-hidden="true">
+      <div class="phone-device">
+        <div class="phone-speaker"></div>
+        <div class="phone-screen">
+          <div class="phone-status">
+            <span>9:17 PM</span>
+            <span class="phone-no-signal">NO SIGNAL</span>
+            <span>43%</span>
+          </div>
+
+          <div id="phoneInbox" class="phone-view">
+            <div class="phone-kicker">Messages</div>
+            <h3 class="phone-title">1 unread</h3>
+            <button id="noahThreadBtn" class="phone-thread unread" type="button">
+              <div class="thread-row">
+                <span class="thread-name">Noah Vale</span>
+                <span class="thread-time">UNKNOWN</span>
+              </div>
+              <div class="thread-preview">If you wake up inside the building...</div>
+            </button>
+          </div>
+
+          <div id="phoneMessage" class="phone-view hidden">
+            <button id="phoneBackBtn" class="message-back" type="button">‹ Messages</button>
+            <div class="message-header">
+              <div class="message-from">Noah Vale</div>
+              <div class="message-meta">Received • time unavailable</div>
+            </div>
+            <div class="message-bubble">If you wake up inside the building, don't trust the rooms.<br><br>Find me before it remembers you.</div>
+            <div class="message-warning">Message stored locally • network unavailable</div>
+          </div>
+
+          <div class="phone-bottom">
+            <button id="lowerPhoneBtn" class="lower-phone" type="button">Lower phone</button>
+          </div>
+        </div>
+      </div>
     </div>
   </section>
   <div id="toast" class="toast">Saved</div>
@@ -1151,6 +1374,7 @@
   let titleGlitchTimers=[];
   let introTimers=[];
   let introArmed=false;
+  let phoneMessageRead=false;
 
   function ensureAudio(){
     if(!audioCtx){
@@ -1267,6 +1491,13 @@
       return;
     }
     playTone(300,.035,.01,'sine',250);
+  }
+
+  function playPhoneBuzz(){
+    if(save.vibe&&navigator.vibrate) navigator.vibrate([45,38,70]);
+    if(!save.sound||!ensureAudio()) return;
+    playTone(118,.07,.014,'square',104);
+    setTimeout(()=>playTone(112,.09,.012,'square',96),115);
   }
 
   function playGlitchSound(){
@@ -1787,6 +2018,53 @@
     runIntro();
   };
 
+  function openPhone(){
+    ensureAudio();
+    playPhoneBuzz();
+    phoneMessageRead=false;
+    $('phoneInbox').classList.remove('hidden');
+    $('phoneMessage').classList.add('hidden');
+    $('phoneOverlay').classList.add('open');
+    $('phoneOverlay').setAttribute('aria-hidden','false');
+  }
+
+  function openNoahMessage(){
+    ensureAudio();
+    playUIClick('soft');
+    phoneMessageRead=true;
+    $('phoneInbox').classList.add('hidden');
+    $('phoneMessage').classList.remove('hidden');
+  }
+
+  function closePhone(){
+    ensureAudio();
+    playUIClick('soft');
+    $('phoneOverlay').classList.remove('open');
+    $('phoneOverlay').setAttribute('aria-hidden','true');
+
+    if(phoneMessageRead){
+      const objective=$('objectiveText');
+      objective.textContent='Find an exit';
+      objective.classList.remove('updated');
+      void objective.offsetWidth;
+      objective.classList.add('updated');
+
+      $('storyText').textContent='Noah knew you would wake up here. The message is impossible to explain, but it gives you one direction: get out.';
+      $('nextBtn').textContent='Continue exploring';
+      toast('Objective updated — Find an exit');
+      save.progress=Math.max(save.progress,4);
+      persist();
+    }
+  }
+
+  $('noahThreadBtn').onclick=openNoahMessage;
+  $('phoneBackBtn').onclick=()=>{
+    playUIClick('soft');
+    $('phoneMessage').classList.add('hidden');
+    $('phoneInbox').classList.remove('hidden');
+  };
+  $('lowerPhoneBtn').onclick=closePhone;
+
   const scenes=[
     ['The fluorescent light stutters overhead. Rain echoes somewhere beyond the walls, but every window opens onto darkness.','Look down the hallway'],
     ['A dead elevator waits at the far end. Its display is still lit: FLOOR — H.','Walk toward the elevator'],
@@ -1798,19 +2076,13 @@
     ensureAudio();
     buzz();
     playUIClick('soft');
-    i++;
 
-    if(i>=scenes.length){
-      i=0;
-      save.progress=1;
-      persist();
-      show('home');
-      $('storyText').textContent=scenes[0][0];
-      $('nextBtn').textContent=scenes[0][1];
-      toast('Chapter demo complete');
+    if(i===scenes.length-1){
+      openPhone();
       return;
     }
 
+    i++;
     $('storyText').textContent=scenes[i][0];
     $('nextBtn').textContent=scenes[i][1];
     save.progress=i+1;
