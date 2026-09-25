@@ -2086,7 +2086,7 @@
     renderer.setClearColor(0x010203,1);
     renderer.outputEncoding=THREE.sRGBEncoding;
     renderer.toneMapping=THREE.ACESFilmicToneMapping;
-    renderer.toneMappingExposure=.62;
+    renderer.toneMappingExposure=.74;
 
     const scene=new THREE.Scene();
     scene.background=new THREE.Color(0x010203);
@@ -2208,11 +2208,12 @@
         new THREE.PlaneGeometry(photoWidth,photoHeight),
         new THREE.MeshStandardMaterial({
           map:texture,
-          color:0xd7d7d1,
-          roughness:.72,
+          emissiveMap:texture,
+          color:0xffffff,
+          roughness:.62,
           metalness:0,
-          emissive:0x07090a,
-          emissiveIntensity:.055
+          emissive:0xffffff,
+          emissiveIntensity:.18
         })
       );
       image.rotation.x=-Math.PI/2;
@@ -2325,7 +2326,7 @@
     bulb.position.set(0,3.45,1.45);
     scene.add(bulb);
 
-    const bulbHalo=new THREE.PointLight(0xf3f6f4,.22,5.2,2);
+    const bulbHalo=new THREE.PointLight(0xffffff,.34,5.8,2);
     bulbHalo.position.copy(bulb.position);
     scene.add(bulbHalo);
 
@@ -2338,8 +2339,8 @@
       return light;
     }
 
-    const photoLightA=makePhotoKissLight(-1.25,-.3,.58);
-    const photoLightB=makePhotoKissLight(1.12,-.58,.54);
+    const photoLightA=makePhotoKissLight(-1.25,-.3,1.05);
+    const photoLightB=makePhotoKissLight(1.12,-.58,1.00);
 
     // A couple of scattered old objects around the memories.
     const paperMat=new THREE.MeshStandardMaterial({color:0x272a29,roughness:1});
@@ -2354,14 +2355,14 @@
       scene.add(scrap);
     }
 
-    const ambient=new THREE.HemisphereLight(0x60717a,0x010203,.28);
+    const ambient=new THREE.HemisphereLight(0x728991,0x010203,.34);
     scene.add(ambient);
 
-    const coolLight=new THREE.PointLight(0xa9c2ca,.85,8,2);
+    const coolLight=new THREE.PointLight(0xd4e2e4,1.08,8.5,2);
     coolLight.position.set(-1.7,3.2,1.2);
     scene.add(coolLight);
 
-    const memoryGlow=new THREE.PointLight(0xcfdadd,.42,4,2);
+    const memoryGlow=new THREE.PointLight(0xf0f5f4,.58,4.8,2);
     memoryGlow.position.set(1.25,1.05,-.55);
     scene.add(memoryGlow);
 
@@ -2455,13 +2456,13 @@
     g.dust.position.y=Math.sin(now*.00045)*.05;
     g.glowParticles.rotation.y-=dt*.09;
     g.glowParticles.position.y=.06+Math.sin(now*.0013)*.07;
-    g.memoryGlow.intensity=.34+.12*Math.sin(now*.0022)+.06*Math.sin(now*.009);
+    g.memoryGlow.intensity=.52+.10*Math.sin(now*.0022)+.04*Math.sin(now*.009);
 
     // Very soft light breathing, like an old overhead bulb warming the prints.
     const lightBreath=.96+.04*Math.sin(now*.00135);
-    if(g.photoLightA) g.photoLightA.intensity=.58*lightBreath;
-    if(g.photoLightB) g.photoLightB.intensity=.54*(.97+.03*Math.sin(now*.0016+1.1));
-    if(g.bulbHalo) g.bulbHalo.intensity=.20+.025*Math.sin(now*.0018);
+    if(g.photoLightA) g.photoLightA.intensity=1.05*lightBreath;
+    if(g.photoLightB) g.photoLightB.intensity=1.00*(.97+.03*Math.sin(now*.0016+1.1));
+    if(g.bulbHalo) g.bulbHalo.intensity=.32+.03*Math.sin(now*.0018);
 
     // Glass only catches tiny highlights; it does not move across the photos.
     if(g.glassShards){
