@@ -1,5 +1,5 @@
-const CACHE='the-hollow-v5';
-const ASSETS=['./manifest.webmanifest','./icon.svg'];
+const CACHE='the-hollow-v6';
+const ASSETS=['./index.html','./manifest.webmanifest','./icon.svg','./assets/images/main-menu-bg.jpg'];
 
 self.addEventListener('install',event=>{
   event.waitUntil(
