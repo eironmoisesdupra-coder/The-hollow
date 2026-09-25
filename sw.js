@@ -1,4 +1,4 @@
-const CACHE='the-hollow-v20';
+const CACHE='the-hollow-v21';
 const ASSETS=['./index.html','./manifest.webmanifest','./icon.svg','./assets/images/main-menu-bg.jpg','./assets/images/loading-hollow-bg.png','./assets/images/prologue-hallway-bg.png','./vendor/three.min.js'];
 
 self.addEventListener('install',event=>{
