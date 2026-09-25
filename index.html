@@ -2070,139 +2070,6 @@
     }
   }
 
-  function makeMemoryPhotoTexture(kind){
-    const canvas=document.createElement('canvas');
-    canvas.width=512;
-    canvas.height=640;
-    const ctx=canvas.getContext('2d');
-
-    // Faded photographic paper.
-    const g=ctx.createLinearGradient(0,0,512,640);
-    g.addColorStop(0,'#33383a');
-    g.addColorStop(.55,'#171b1d');
-    g.addColorStop(1,'#080a0b');
-    ctx.fillStyle=g;
-    ctx.fillRect(0,0,512,640);
-
-    // Film grain / age.
-    for(let i=0;i<5200;i++){
-      const a=Math.random()*.075;
-      const v=120+Math.random()*100;
-      ctx.fillStyle='rgba('+v+','+v+','+v+','+a+')';
-      ctx.fillRect(Math.random()*512,Math.random()*640,1+Math.random()*2,1+Math.random()*2);
-    }
-
-    // Soft vignette.
-    const vig=ctx.createRadialGradient(256,280,60,256,320,390);
-    vig.addColorStop(0,'rgba(255,255,255,.035)');
-    vig.addColorStop(.62,'rgba(0,0,0,.06)');
-    vig.addColorStop(1,'rgba(0,0,0,.62)');
-    ctx.fillStyle=vig;
-    ctx.fillRect(0,0,512,640);
-
-    function person(x,y,scale,shade,shirt){
-      ctx.save();
-      ctx.translate(x,y);
-      ctx.scale(scale,scale);
-
-      // torso / shoulders
-      ctx.fillStyle=shirt;
-      ctx.beginPath();
-      ctx.ellipse(0,115,82,92,0,0,Math.PI*2);
-      ctx.fill();
-
-      // neck
-      ctx.fillStyle=shade;
-      ctx.fillRect(-20,42,40,46);
-
-      // head
-      ctx.beginPath();
-      ctx.ellipse(0,0,48,60,0,0,Math.PI*2);
-      ctx.fill();
-
-      // subtle facial shadow, deliberately non-specific.
-      ctx.fillStyle='rgba(0,0,0,.24)';
-      ctx.beginPath();
-      ctx.ellipse(10,8,26,39,-.08,0,Math.PI*2);
-      ctx.fill();
-
-      ctx.restore();
-    }
-
-    if(kind==='brothers'){
-      // Casual selfie / family picture of Noah and Elias.
-      ctx.save();
-      ctx.translate(0,18);
-      ctx.rotate(-.025);
-      person(188,235,1.02,'#857367','#2f3b40');
-      person(326,252,.94,'#765f55','#282e34');
-
-      // faint background window / apartment light.
-      ctx.fillStyle='rgba(170,185,188,.07)';
-      ctx.fillRect(80,78,352,120);
-      ctx.strokeStyle='rgba(215,220,218,.08)';
-      ctx.lineWidth=4;
-      ctx.strokeRect(80,78,352,120);
-
-      ctx.fillStyle='rgba(228,228,220,.66)';
-      ctx.font='22px Georgia,serif';
-      ctx.fillText('NOAH + ELIAS',34,592);
-      ctx.font='15px system-ui,sans-serif';
-      ctx.fillStyle='rgba(210,212,208,.44)';
-      ctx.fillText('before everything changed',35,617);
-      ctx.restore();
-    }else{
-      // Elias foreground with the Hollow standing behind him.
-      person(215,300,.92,'#715a50','#252c30');
-
-      // Hollow: tall, dark, unnaturally thin silhouette.
-      ctx.save();
-      ctx.translate(350,205);
-      ctx.fillStyle='rgba(0,0,0,.94)';
-      ctx.beginPath();
-      ctx.ellipse(0,0,34,46,0,0,Math.PI*2);
-      ctx.fill();
-      ctx.fillRect(-25,40,50,190);
-      ctx.beginPath();
-      ctx.moveTo(-20,70); ctx.lineTo(-68,245); ctx.lineTo(-48,252); ctx.lineTo(0,118);
-      ctx.lineTo(48,252); ctx.lineTo(68,245); ctx.lineTo(20,70); ctx.closePath();
-      ctx.fill();
-
-      // Hollow aura.
-      const aura=ctx.createRadialGradient(0,105,20,0,105,170);
-      aura.addColorStop(0,'rgba(90,120,130,.11)');
-      aura.addColorStop(.45,'rgba(45,55,58,.10)');
-      aura.addColorStop(1,'rgba(0,0,0,0)');
-      ctx.fillStyle=aura;
-      ctx.fillRect(-190,-70,380,360);
-      ctx.restore();
-
-      ctx.fillStyle='rgba(228,228,220,.58)';
-      ctx.font='22px Georgia,serif';
-      ctx.fillText('ELIAS',34,592);
-      ctx.font='15px system-ui,sans-serif';
-      ctx.fillStyle='rgba(210,212,208,.34)';
-      ctx.fillText('date unreadable',35,617);
-    }
-
-    // Scratches.
-    ctx.strokeStyle='rgba(235,235,230,.08)';
-    ctx.lineWidth=1;
-    for(let i=0;i<22;i++){
-      ctx.beginPath();
-      const x=Math.random()*512;
-      ctx.moveTo(x,Math.random()*640);
-      ctx.lineTo(x+Math.random()*18-9,Math.random()*640);
-      ctx.stroke();
-    }
-
-    const texture=new THREE.CanvasTexture(canvas);
-    texture.minFilter=THREE.LinearFilter;
-    texture.magFilter=THREE.LinearFilter;
-    texture.encoding=THREE.sRGBEncoding;
-    return texture;
-  }
-
   function initLoading3D(){
     if(loading3D||!window.THREE) return !!loading3D;
 
@@ -2240,17 +2107,39 @@
     floor.position.y=0;
     scene.add(floor);
 
-    const familyTex=makeMemoryPhotoTexture('brothers');
-    const hollowTex=makeMemoryPhotoTexture('hollow');
+    const textureLoader=new THREE.TextureLoader();
+    const maxAnisotropy=renderer.capabilities.getMaxAnisotropy
+      ? Math.min(4,renderer.capabilities.getMaxAnisotropy())
+      : 1;
+
+    function loadMemoryPhoto(path){
+      const texture=textureLoader.load(path,loaded=>{
+        loaded.encoding=THREE.sRGBEncoding;
+        loaded.minFilter=THREE.LinearFilter;
+        loaded.magFilter=THREE.LinearFilter;
+        loaded.anisotropy=maxAnisotropy;
+        loaded.needsUpdate=true;
+      });
+      texture.encoding=THREE.sRGBEncoding;
+      texture.minFilter=THREE.LinearFilter;
+      texture.magFilter=THREE.LinearFilter;
+      texture.anisotropy=maxAnisotropy;
+      return texture;
+    }
+
+    const familyTex=loadMemoryPhoto('./assets/images/loading-photo-noah-elias.png');
+    const hollowTex=loadMemoryPhoto('./assets/images/loading-photo-elias-hollow.png');
 
     function makePhoto(texture,x,z,angle){
       const group=new THREE.Group();
 
+      // Printed-photo backing. The visible image plane keeps the uploaded
+      // 4:5 artwork at an exact 0.8 aspect ratio, so faces are never stretched.
       const border=new THREE.Mesh(
-        new THREE.BoxGeometry(2.5,.055,3.25),
+        new THREE.BoxGeometry(2.52,.055,3.12),
         new THREE.MeshStandardMaterial({
-          color:0x9a978d,
-          roughness:.92,
+          color:0x8e8b82,
+          roughness:.94,
           metalness:0
         })
       );
@@ -2259,18 +2148,21 @@
       border.receiveShadow=true;
       group.add(border);
 
+      const photoWidth=2.24;
+      const photoHeight=2.80;
       const image=new THREE.Mesh(
-        new THREE.PlaneGeometry(2.18,2.78),
+        new THREE.PlaneGeometry(photoWidth,photoHeight),
         new THREE.MeshStandardMaterial({
           map:texture,
-          roughness:.76,
+          color:0xd7d7d1,
+          roughness:.72,
           metalness:0,
-          emissive:0x080a0b,
-          emissiveIntensity:.08
+          emissive:0x07090a,
+          emissiveIntensity:.055
         })
       );
       image.rotation.x=-Math.PI/2;
-      image.position.set(0,.071,-.08);
+      image.position.set(0,.071,-.015);
       image.receiveShadow=true;
       group.add(image);
 
