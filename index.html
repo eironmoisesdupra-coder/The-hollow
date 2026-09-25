@@ -24,6 +24,40 @@
     @keyframes drift{from{transform:translateX(-8%)}to{transform:translateX(8%)}}
     .screen{position:absolute;inset:0;display:none;z-index:2;padding:max(24px,env(safe-area-inset-top)) 22px max(24px,env(safe-area-inset-bottom));}
     .screen.active{display:flex}
+    .screen.fade-out{animation:fadeOut .6s ease forwards}
+    @keyframes fadeOut{to{opacity:0;transform:scale(1.02)}}
+    @keyframes fadeIn{from{opacity:0}to{opacity:1}}
+    #introStudio,#introWarning,#introLoading{background:#000;padding:0;align-items:center;justify-content:center;animation:fadeIn .45s ease}
+    .intro-panel{width:100%;height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:20px}
+    .intro-top{font-family:system-ui,sans-serif;font-weight:800;font-size:clamp(24px,8vw,38px);letter-spacing:.01em;color:#fff;margin-bottom:140px}
+    .intro-present{font-family:system-ui,sans-serif;font-size:11px;color:#a0a0a0;margin-bottom:8px}
+    .intro-studio{font-family:system-ui,sans-serif;font-weight:300;font-size:clamp(30px,10vw,52px);letter-spacing:.02em;color:#d8d8d8}
+    .warning-box{padding:30px 20px;text-align:center;max-width:540px}
+    .warning-title{font-family:system-ui,sans-serif;font-weight:900;color:#e11313;font-size:clamp(28px,9vw,48px);text-shadow:0 0 9px rgba(255,0,0,.35);margin-bottom:10px}
+    .warning-text{font-family:system-ui,sans-serif;text-transform:uppercase;font-weight:800;color:#fff;line-height:1.15;font-size:clamp(18px,5.4vw,31px);filter:blur(.2px)}
+    .warning-sub{font-family:system-ui,sans-serif;color:#999;font-size:12px;letter-spacing:.15em;text-transform:uppercase;margin-top:18px}
+    .loading-stage{width:100%;height:100%;display:flex;align-items:center;justify-content:center;padding:22px}
+    .loading-frame{position:relative;width:min(90vw,440px);aspect-ratio:9/13;border-radius:8px;overflow:hidden;background:#060606;box-shadow:0 0 0 1px rgba(255,255,255,.05),0 24px 60px rgba(0,0,0,.75)}
+    .loading-scene{position:absolute;inset:0;background:linear-gradient(180deg,rgba(0,0,0,.88) 0 14%,transparent 28%,transparent 77%,rgba(0,0,0,.9) 100%),linear-gradient(90deg,#090909 0 4%,transparent 18%,transparent 82%,#080808 100%),radial-gradient(circle at 50% 48%,rgba(255,255,255,.10),transparent 18%),linear-gradient(180deg,#efefef 0 16%,#cfcfcf 16% 68%,#8c8c8c 68% 100%)}
+    .corridor{position:absolute;left:10%;right:10%;top:18%;bottom:18%;perspective:600px}
+    .wall-left,.wall-right,.floor,.ceiling,.end-door,.lamp,.machine,.window{position:absolute}
+    .ceiling{left:10%;right:10%;top:0;height:22%;background:linear-gradient(180deg,#dfdfdf,#bfbfbf);clip-path:polygon(10% 0,90% 0,100% 100%,0 100%)}
+    .floor{left:0;right:0;bottom:0;height:37%;background:linear-gradient(180deg,#a0a0a0,#5f5f5f 60%,#404040);clip-path:polygon(25% 0,75% 0,100% 100%,0 100%)}
+    .wall-left{left:0;top:8%;bottom:14%;width:27%;background:linear-gradient(180deg,#dfdfdf,#a8a8a8);clip-path:polygon(0 0,100% 11%,82% 100%,0 100%)}
+    .wall-right{right:0;top:8%;bottom:14%;width:27%;background:linear-gradient(180deg,#dadada,#a0a0a0);clip-path:polygon(0 11%,100% 0,100% 100%,18% 100%)}
+    .end-door{left:36%;right:36%;top:24%;bottom:20%;background:radial-gradient(circle at 50% 45%,rgba(255,30,30,.18),transparent 38%),linear-gradient(180deg,#320000,#510000 55%,#210000);box-shadow:0 0 60px rgba(255,0,0,.26)}
+    .lamp{left:44%;right:44%;top:8%;height:18%;background:linear-gradient(180deg,#fff,#dcdcdc);box-shadow:0 0 22px rgba(255,255,255,.45)}
+    .machine{left:6%;top:24%;width:14%;height:22%;background:linear-gradient(180deg,#1e1e1e,#444);border-radius:3px;box-shadow:inset 0 0 0 2px rgba(255,255,255,.06)}
+    .machine:before,.machine:after{content:"";position:absolute;background:#777;border-radius:50%}
+    .machine:before{width:26px;height:26px;left:50%;transform:translateX(-50%);top:18%}
+    .machine:after{width:8px;height:8px;background:#59f;left:62%;top:58%;box-shadow:0 0 10px rgba(80,160,255,.7)}
+    .window{left:18%;top:28%;width:13%;height:16%;background:#3d4a57;border:5px solid #b06b2b;border-radius:4px;box-shadow:inset 0 0 18px rgba(0,0,0,.4)}
+    .window:after{content:"";position:absolute;inset:0;background:linear-gradient(90deg,transparent 48%,rgba(255,255,255,.25) 48% 52%,transparent 52%)}
+    .load-hud{position:absolute;left:0;right:0;bottom:12%;padding:0 24px;text-align:center;color:#fff;font-family:system-ui,sans-serif}
+    .asset-text{font-size:14px;opacity:.92;margin-bottom:10px}
+    .progress-shell{height:16px;border-radius:4px;background:rgba(0,0,0,.56);border:1px solid rgba(255,255,255,.1);overflow:hidden;position:relative}
+    .progress-fill{height:100%;width:0%;background:linear-gradient(90deg,#fff,#d9d9d9)}
+    .percent{font-size:34px;font-weight:800;margin-top:12px;letter-spacing:.02em}
     #home{align-items:center;justify-content:center;text-align:center}
     .home-wrap{width:min(88vw,420px);transform:translateY(-2vh)}
     .eyebrow{font-family:system-ui,sans-serif;letter-spacing:.45em;text-transform:uppercase;font-size:10px;color:#817b74;margin-bottom:14px}
@@ -61,7 +95,37 @@
 <body>
 <div class="app">
   <div class="fog"></div><div class="grain"></div><div class="vignette"></div>
-  <section id="home" class="screen active">
+  <section id="introStudio" class="screen active">
+    <div class="intro-panel">
+      <div class="intro-top">Full video on my channel!</div>
+      <div class="intro-present">We present:</div>
+      <div class="intro-studio">Eiron Studio</div>
+    </div>
+  </section>
+  <section id="introWarning" class="screen">
+    <div class="warning-box">
+      <div class="warning-title">WARNING!</div>
+      <div class="warning-text">THIS GAME CONTAINS BRIGHT FLASHING<br>LIGHTS AND/OR SCENES THAT MAY CAUSE<br>DISCOMFORT</div>
+      <div class="warning-sub">Please play with caution</div>
+    </div>
+  </section>
+  <section id="introLoading" class="screen">
+    <div class="loading-stage">
+      <div class="loading-frame">
+        <div class="loading-scene">
+          <div class="corridor">
+            <div class="ceiling"></div><div class="floor"></div><div class="wall-left"></div><div class="wall-right"></div><div class="end-door"></div><div class="lamp"></div><div class="machine"></div><div class="window"></div>
+          </div>
+        </div>
+        <div class="load-hud">
+          <div id="assetText" class="asset-text">Loading Assets: 1/2685</div>
+          <div class="progress-shell"><div id="progressFill" class="progress-fill"></div></div>
+          <div id="percentText" class="percent">1%</div>
+        </div>
+      </div>
+    </div>
+  </section>
+  <section id="home" class="screen">
     <div class="home-wrap">
       <div class="eyebrow">A short horror experience</div>
       <h1>The Hollow</h1>
@@ -72,13 +136,14 @@
         <button id="settingsBtn">Settings</button>
       </div>
     </div>
-    <div class="version">OFFLINE STARTER • v0.1</div>
+    <div class="version">OFFLINE STARTER • v0.2</div>
   </section>
   <section id="settings" class="screen panel-screen">
     <div class="topbar"><button class="back" id="backBtn">‹</button><h2>Settings</h2></div>
     <div class="settings">
       <div class="setting-row"><span>Ambient sound</span><div id="soundSwitch" class="switch on" role="switch" aria-checked="true"></div></div>
       <div class="setting-row"><span>Vibration</span><div id="vibeSwitch" class="switch on" role="switch" aria-checked="true"></div></div>
+      <div class="setting-row"><span>Replay intro</span><button id="replayIntroBtn" style="background:none;border:0;color:#b7aea5">PLAY</button></div>
       <div class="setting-row"><span>Reset progress</span><button id="resetBtn" style="background:none;border:0;color:#b7aea5">RESET</button></div>
     </div>
   </section>
@@ -98,11 +163,30 @@
   const screens=[...document.querySelectorAll('.screen')];
   const $=id=>document.getElementById(id);
   const save=JSON.parse(localStorage.getItem('hollowSave')||'{"progress":0,"sound":true,"vibe":true}');
-  const show=id=>{screens.forEach(s=>s.classList.remove('active'));$(id).classList.add('active')};
-  const persist=()=>{localStorage.setItem('hollowSave',JSON.stringify(save));$('continueBtn').disabled=!save.progress};
+  const show=id=>{screens.forEach(s=>{s.classList.remove('active','fade-out');}); $(id).classList.add('active')};
+  const persist=()=>{localStorage.setItem('hollowSave',JSON.stringify(save)); $('continueBtn').disabled=!save.progress};
   const buzz=()=>{if(save.vibe&&navigator.vibrate)navigator.vibrate(25)};
   const toast=t=>{const e=$('toast');e.textContent=t;e.classList.add('show');setTimeout(()=>e.classList.remove('show'),1200)};
   const sync=()=>{$('soundSwitch').classList.toggle('on',save.sound);$('vibeSwitch').classList.toggle('on',save.vibe);$('soundSwitch').setAttribute('aria-checked',save.sound);$('vibeSwitch').setAttribute('aria-checked',save.vibe);persist()};
+  function transition(from,to,delay=350){const fromEl=$(from);if(fromEl){fromEl.classList.add('fade-out');setTimeout(()=>show(to),delay)}else show(to)}
+  function runIntro(){show('introStudio');setTimeout(()=>transition('introStudio','introWarning',450),2200);setTimeout(()=>transition('introWarning','introLoading',450),5000);setTimeout(startLoadingSequence,5550)}
+  function startLoadingSequence(){
+    show('introLoading');
+    let percent=1;
+    const totalAssets=2685;
+    $('progressFill').style.width='1%';
+    $('percentText').textContent='1%';
+    $('assetText').textContent='Loading Assets: 1/'+totalAssets;
+    const interval=setInterval(()=>{
+      percent+=Math.floor(Math.random()*3)+1;
+      if(percent>100)percent=100;
+      const loaded=Math.max(1,Math.round((percent/100)*totalAssets));
+      $('progressFill').style.width=percent+'%';
+      $('percentText').textContent=percent+'%';
+      $('assetText').textContent='Loading Assets: '+loaded+'/'+totalAssets;
+      if(percent>=100){clearInterval(interval);setTimeout(()=>transition('introLoading','home',500),450)}
+    },70)
+  }
   $('startBtn').onclick=()=>{buzz();save.progress=1;persist();show('game');toast('Progress saved')};
   $('continueBtn').onclick=()=>{buzz();show('game')};
   $('settingsBtn').onclick=()=>{buzz();show('settings')};
@@ -111,14 +195,21 @@
   $('soundSwitch').onclick=()=>{save.sound=!save.sound;sync();buzz()};
   $('vibeSwitch').onclick=()=>{save.vibe=!save.vibe;sync();buzz()};
   $('resetBtn').onclick=()=>{save.progress=0;persist();toast('Progress reset')};
+  $('replayIntroBtn').onclick=()=>{buzz();runIntro()};
   const scenes=[
     ['You wake to the sound of three knocks. The hallway outside your room is empty, but the door at the far end is open now.','Approach the door'],
     ['The floorboards bend under your weight. Something moves behind the door, then goes quiet.','Reach for the handle'],
     ['The handle is cold. A whisper comes from the other side: “You took long enough.”','End demo']
-  ]; let i=0;
-  $('nextBtn').onclick=()=>{buzz();i++; if(i>=scenes.length){i=0;save.progress=1;persist();show('home');toast('Chapter demo complete');return;} $('storyText').textContent=scenes[i][0];$('nextBtn').textContent=scenes[i][1];save.progress=i+1;persist()};
+  ];
+  let i=0;
+  $('nextBtn').onclick=()=>{
+    buzz();i++;
+    if(i>=scenes.length){i=0;save.progress=1;persist();show('home');$('storyText').textContent=scenes[0][0];$('nextBtn').textContent=scenes[0][1];toast('Chapter demo complete');return}
+    $('storyText').textContent=scenes[i][0];$('nextBtn').textContent=scenes[i][1];save.progress=i+1;persist()
+  };
   sync();
-  if('serviceWorker' in navigator){window.addEventListener('load',()=>navigator.serviceWorker.register('./sw.js').catch(()=>{}));}
+  runIntro();
+  if('serviceWorker' in navigator){window.addEventListener('load',()=>navigator.serviceWorker.register('./sw.js').catch(()=>{}))}
 })();
 </script>
 </body>
