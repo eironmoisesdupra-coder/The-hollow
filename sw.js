@@ -1,4 +1,4 @@
-const CACHE='the-hollow-v7';
+const CACHE='the-hollow-v8';
 const ASSETS=['./index.html','./manifest.webmanifest','./icon.svg','./assets/images/main-menu-bg.jpg'];
 
 self.addEventListener('install',event=>{
