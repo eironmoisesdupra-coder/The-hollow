@@ -309,6 +309,40 @@
       transform:translate(-50%,0);
       pointer-events:auto
     }
+    .elias-dialogue{
+      position:absolute;
+      z-index:18;
+      left:50%;
+      bottom:max(18%,calc(env(safe-area-inset-bottom) + 92px));
+      transform:translate(-50%,10px);
+      width:min(720px,78vw);
+      padding:10px 14px;
+      border-left:2px solid rgba(180,190,192,.38);
+      background:linear-gradient(90deg,rgba(3,5,6,.78),rgba(3,5,6,.48),rgba(3,5,6,.12));
+      color:#e1e4e4;
+      opacity:0;
+      pointer-events:none;
+      transition:opacity .18s ease,transform .18s ease;
+      text-shadow:0 2px 7px #000;
+      backdrop-filter:blur(3px)
+    }
+    .elias-dialogue.show{
+      opacity:1;
+      transform:translate(-50%,0)
+    }
+    .elias-dialogue-name{
+      display:block;
+      margin-bottom:4px;
+      color:#8c989a;
+      font:700 8px system-ui,sans-serif;
+      letter-spacing:.24em;
+      text-transform:uppercase
+    }
+    .elias-dialogue-text{
+      font:500 clamp(12px,1.7vw,16px) system-ui,sans-serif;
+      line-height:1.45;
+      letter-spacing:.015em
+    }
     .flashlight-btn{
       position:absolute;
       z-index:10;
@@ -1558,6 +1592,10 @@
     <div class="prologue-scene"></div>
     <canvas id="game3d" class="game3d" aria-label="3D Hollow House hallway"></canvas>
     <div id="scareBlackout" class="scare-blackout" aria-hidden="true"></div>
+    <div id="eliasDialogue" class="elias-dialogue" aria-live="polite">
+      <span class="elias-dialogue-name">Elias</span>
+      <span id="eliasDialogueText" class="elias-dialogue-text"></span>
+    </div>
     <div id="gameReticle" class="game-reticle" aria-hidden="true"></div>
     <button id="interactPrompt" class="interaction-prompt" type="button">Interact</button>
     <div class="survival-hud" aria-label="Lives">
@@ -1669,6 +1707,8 @@
   let scareStart=0;
   let elevatorCalledAt=0;
   let door307Cutscene=null;
+  let activeDoor307Tension=null;
+  let eliasDialogueTimer=null;
   const moveState={forward:false,back:false,left:false,right:false};
   const lookState={active:false,pointerId:null,lastX:0,lastY:0,yaw:0,pitch:0};
   let sprintEnabled=false;
@@ -1857,10 +1897,106 @@
     thump.stop(now+.2);
   }
 
-  function playDoorRattle(){
+  function playDoorLocked(){
     if(!save.sound||!ensureAudio()) return;
-    playNoiseBurst(.12,.032,620);
-    setTimeout(()=>playTone(92,.09,.018,'sine',58),70);
+
+    // Existing doorknob/rattle effect raised by 40%.
+    playNoiseBurst(.13,.0448,680);
+    playTone(128,.055,.0252,'square',94);
+    setTimeout(()=>playNoiseBurst(.085,.031,1050),65);
+    setTimeout(()=>playTone(91,.10,.0252,'sine',56),105);
+  }
+
+  function playDoorOpen(){
+    if(!save.sound||!ensureAudio()) return;
+    const now=audioCtx.currentTime;
+    const src=makeNoiseSource(false);
+    const bp=audioCtx.createBiquadFilter();
+    const gain=audioCtx.createGain();
+    const creak=audioCtx.createOscillator();
+    const creakGain=audioCtx.createGain();
+
+    bp.type='bandpass';
+    bp.frequency.setValueAtTime(520,now);
+    bp.frequency.exponentialRampToValueAtTime(165,now+.56);
+    bp.Q.value=.8;
+
+    gain.gain.setValueAtTime(.0001,now);
+    gain.gain.linearRampToValueAtTime(.049,now+.05);
+    gain.gain.exponentialRampToValueAtTime(.0001,now+.62);
+
+    creak.type='sawtooth';
+    creak.frequency.setValueAtTime(152,now);
+    creak.frequency.exponentialRampToValueAtTime(61,now+.52);
+    creakGain.gain.setValueAtTime(.0001,now);
+    creakGain.gain.linearRampToValueAtTime(.020,now+.08);
+    creakGain.gain.exponentialRampToValueAtTime(.0001,now+.57);
+
+    src.connect(bp);
+    bp.connect(gain);
+    gain.connect(sfxBus);
+    creak.connect(creakGain);
+    creakGain.connect(sfxBus);
+
+    src.start(now);
+    src.stop(now+.68);
+    creak.start(now);
+    creak.stop(now+.62);
+  }
+
+  function playDoorClose(){
+    if(!save.sound||!ensureAudio()) return;
+    playNoiseBurst(.09,.040,430);
+    playTone(78,.13,.028,'sine',43);
+  }
+
+  function startDoor307Tension(){
+    if(!save.sound||!ensureAudio()||activeDoor307Tension) return;
+
+    const now=audioCtx.currentTime;
+    const mix=audioCtx.createGain();
+    const droneA=audioCtx.createOscillator();
+    const droneB=audioCtx.createOscillator();
+    const noise=makeNoiseSource(true);
+    const noiseFilter=audioCtx.createBiquadFilter();
+    const noiseGain=audioCtx.createGain();
+
+    droneA.type='sine';
+    droneA.frequency.value=43;
+    droneB.type='triangle';
+    droneB.frequency.value=64.5;
+    droneB.detune.value=-9;
+
+    noiseFilter.type='lowpass';
+    noiseFilter.frequency.value=320;
+    noiseGain.gain.value=.022;
+
+    mix.gain.setValueAtTime(.0001,now);
+    mix.gain.linearRampToValueAtTime(.10,now+.8);
+    mix.gain.exponentialRampToValueAtTime(.23,now+3.35);
+
+    droneA.connect(mix);
+    droneB.connect(mix);
+    noise.connect(noiseFilter);
+    noiseFilter.connect(noiseGain);
+    noiseGain.connect(mix);
+    mix.connect(ambienceBus);
+
+    droneA.start(now);
+    droneB.start(now);
+    noise.start(now);
+    activeDoor307Tension={mix,sources:[droneA,droneB,noise]};
+  }
+
+  function stopDoor307Tension(fade=.22){
+    if(!activeDoor307Tension||!audioCtx) return;
+    const current=activeDoor307Tension;
+    activeDoor307Tension=null;
+    const now=audioCtx.currentTime;
+    current.mix.gain.cancelScheduledValues(now);
+    current.mix.gain.setValueAtTime(Math.max(.0001,current.mix.gain.value),now);
+    current.mix.gain.exponentialRampToValueAtTime(.0001,now+fade);
+    setTimeout(()=>current.sources.forEach(src=>safeStop(src)),fade*1000+60);
   }
 
   function playDistantKnock(){
@@ -1868,6 +2004,40 @@
     playTone(72,.10,.028,'sine',48);
     setTimeout(()=>playTone(68,.11,.025,'sine',44),190);
     setTimeout(()=>playTone(74,.09,.021,'sine',46),430);
+  }
+
+  function speakElias(line,duration=2600){
+    const box=$('eliasDialogue');
+    const textEl=$('eliasDialogueText');
+    if(!box||!textEl) return;
+
+    if(eliasDialogueTimer){
+      clearTimeout(eliasDialogueTimer);
+      eliasDialogueTimer=null;
+    }
+
+    textEl.textContent=line;
+    box.classList.add('show');
+
+    if(save.sound&&'speechSynthesis' in window){
+      try{
+        window.speechSynthesis.cancel();
+        const utter=new SpeechSynthesisUtterance(line);
+        const voices=window.speechSynthesis.getVoices();
+        const english=voices.find(v=>/^en/i.test(v.lang))||voices[0];
+        if(english) utter.voice=english;
+        utter.lang=english?.lang||'en-US';
+        utter.rate=.88;
+        utter.pitch=.78;
+        utter.volume=.72;
+        window.speechSynthesis.speak(utter);
+      }catch(_){}
+    }
+
+    eliasDialogueTimer=setTimeout(()=>{
+      box.classList.remove('show');
+      eliasDialogueTimer=null;
+    },duration);
   }
 
   function playGlitchSound(){
@@ -3467,7 +3637,9 @@
 
     // Open Door 307 first.
     door.userData.targetRotation=door.userData.side>0?-1.08:1.08;
-    playDoorRattle();
+    playDoorOpen();
+    startDoor307Tension();
+    speakElias("Wait... that's not a room.",2300);
 
     const camera=threeGame.camera;
     const startPos=camera.position.clone();
@@ -3510,34 +3682,42 @@
 
   function interactWithDoor(door){
     const n=door.userData.doorNumber;
-    playDoorRattle();
 
     if(n===303){
       if(Math.abs(door.userData.targetRotation)<.05){
         door.userData.targetRotation=door.userData.side>0?-.42:.42;
+        playDoorOpen();
         toast('The door opens only a few inches.');
+        speakElias("It's just darkness in there.",2300);
       }else{
         door.userData.targetRotation=0;
+        playDoorClose();
         toast('You pull the door shut.');
       }
       return;
     }
 
     if(n===302){
+      playDoorLocked();
       toast('Something knocks back from the other side.');
       setTimeout(playDistantKnock,260);
+      setTimeout(()=>speakElias("No. I'm not opening that.",2200),720);
       return;
     }
 
     if(n===304){
+      playDoorLocked();
       toast('A whisper stops the moment you touch the handle.');
-      playNoiseBurst(.25,.018,1100);
+      playNoiseBurst(.25,.0252,1100);
+      setTimeout(()=>speakElias("I heard you.",1900),320);
       return;
     }
 
     if(n===306){
+      playDoorLocked();
       toast('Scratching. Then silence.');
-      setTimeout(()=>playNoiseBurst(.18,.025,480),160);
+      setTimeout(()=>playNoiseBurst(.18,.035,480),160);
+      setTimeout(()=>speakElias("Something's moving in there.",2300),450);
       return;
     }
 
@@ -3546,7 +3726,9 @@
       return;
     }
 
+    playDoorLocked();
     toast('Locked.');
+    if(n===301) speakElias("Locked... of course.",1800);
   }
 
   function callElevator(){
@@ -3565,6 +3747,7 @@
       objective.classList.remove('updated');
       void objective.offsetWidth;
       objective.classList.add('updated');
+      speakElias("Floor H? This building shouldn't have an H.",3100);
     },1500);
   }
 
@@ -3580,8 +3763,10 @@
       const label=currentInteractable.userData.interactionLabel||'object';
       if(label.toLowerCase().includes('radiator')){
         toast('Cold metal. It has not worked in years.');
+        speakElias("Cold. Like the power's been dead for years.",2700);
       }else{
         toast('Dust outlines where someone once sat.');
+        speakElias("Someone was sitting here... recently.",2600);
       }
     }
   }
@@ -3688,9 +3873,11 @@
 
         black?.classList.remove('on');
         $('game').classList.remove('door-cutscene');
+        stopDoor307Tension(.18);
         door307Cutscene=null;
         threeRunning=true;
         setInteractionTarget(null);
+        setTimeout(()=>speakElias("No... I've been here before.",3000),260);
       }
     }
 
@@ -3797,6 +3984,7 @@
         g.hollowFigure.visible=false;
         scareStart=0;
         toast('It is gone.');
+        speakElias("What was that?",2100);
       }
     }
 
@@ -3854,6 +4042,9 @@
     $('game').classList.add('gameplay-live');
     $('storybox')?.setAttribute('aria-hidden','true');
     threeRunning=true;
+    if(save.progress<=1){
+      setTimeout(()=>speakElias("Okay... where am I?",2200),650);
+    }
     threeGame.lastTime=performance.now();
     if(!threeGame.raf) threeGame.raf=requestAnimationFrame(animateThreeGame);
     threeGame.resize?.();
@@ -3862,6 +4053,10 @@
   function pauseThreeGame(){
     threeRunning=false;
     setInteractionTarget(null);
+    stopDoor307Tension(.10);
+    if('speechSynthesis' in window){
+      try{window.speechSynthesis.cancel()}catch(_){}
+    }
     setSprint(false);
     Object.keys(moveState).forEach(k=>moveState[k]=false);
   }
@@ -4218,6 +4413,7 @@
       $('storyText').textContent='Noah knew you would wake up here. The message is impossible to explain, but it gives you one direction: get out.';
       $('nextBtn').textContent='Continue exploring';
       toast('Objective updated — Find an exit');
+      speakElias("Noah... how did you know I'd wake up here?",3200);
       save.progress=Math.max(save.progress,4);
       persist();
       setTimeout(triggerFirstScare,520);
