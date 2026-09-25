@@ -3497,7 +3497,8 @@
       targetPos,
       targetYaw,
       mouthStart,
-      teleported:false
+      teleported:false,
+      lastMouthSound:0
     };
 
     if(threeGame.mouthGroup){
@@ -3667,8 +3668,10 @@
         const scale=.42+rush*4.8;
         g.mouthGroup.scale.set(scale,scale,scale);
 
-        if(save.sound&&raw>.58&&Math.floor(elapsed/180)%2===0){
-          playNoiseBurst(.035,.010+raw*.018,320+raw*360);
+        if(save.sound&&raw>.58&&now-cs.lastMouthSound>170){
+          cs.lastMouthSound=now;
+          playNoiseBurst(.045,.010+raw*.018,320+raw*360);
+          playTone(64+raw*24,.07,.008+raw*.010,'sine',44);
         }
       }else if(elapsed>=3550&&elapsed<4050){
         // The shadow fills the player's view.
