@@ -1,5 +1,5 @@
-const CACHE='the-hollow-v22';
-const ASSETS=['./index.html','./manifest.webmanifest','./icon.svg','./assets/images/main-menu-bg.jpg','./assets/images/loading-hollow-bg.png','./assets/images/prologue-hallway-bg.png','./vendor/three.min.js'];
+const CACHE='the-hollow-v23';
+const ASSETS=['./index.html','./manifest.webmanifest','./icon.svg','./assets/images/main-menu-bg.jpg','./assets/images/prologue-hallway-bg.png','./vendor/three.min.js'];
 
 self.addEventListener('install',event=>{
   event.waitUntil(
