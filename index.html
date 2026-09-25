@@ -1097,8 +1097,17 @@
       position:absolute;
       inset:0;
       overflow:hidden;
-      background:#020406 url('./assets/images/loading-hollow-bg.png') center center/cover no-repeat;
+      background:#010203;
       isolation:isolate
+    }
+    .loading-3d{
+      position:absolute;
+      inset:0;
+      z-index:0;
+      width:100%;
+      height:100%;
+      display:block;
+      background:#010203
     }
     .hollow-loading:before{
       content:"";
@@ -1107,9 +1116,9 @@
       z-index:1;
       pointer-events:none;
       background:
-        radial-gradient(circle at 50% 35%,rgba(108,145,160,.08),transparent 26%),
-        linear-gradient(180deg,rgba(0,0,0,.05),transparent 38%,transparent 72%,rgba(0,0,0,.38));
-      box-shadow:inset 0 0 clamp(45px,9vw,150px) rgba(0,0,0,.48)
+        radial-gradient(ellipse at 50% 42%,transparent 0 42%,rgba(0,0,0,.18) 70%,rgba(0,0,0,.72) 100%),
+        linear-gradient(180deg,rgba(0,0,0,.24),transparent 30%,transparent 68%,rgba(0,0,0,.52));
+      box-shadow:inset 0 0 clamp(55px,10vw,170px) rgba(0,0,0,.58)
     }
     .loading-fog{
       position:absolute;
@@ -1243,7 +1252,7 @@
       text-transform:uppercase
     }
     .loading-percent{
-      color:#b9b9b9;
+      color:#f2f2ee;
       font-size:clamp(9px,1.15vw,13px);
       letter-spacing:.08em;
       font-variant-numeric:tabular-nums
@@ -1252,7 +1261,7 @@
       position:relative;
       height:clamp(16px,2.1vw,24px);
       width:100%;
-      border:1px solid rgba(255,50,50,.46);
+      border:1px solid rgba(255,255,255,.34);
       background:rgba(9,9,11,.72);
       overflow:hidden;
       box-shadow:0 0 0 1px rgba(0,0,0,.65),0 5px 20px rgba(0,0,0,.5)
@@ -1270,8 +1279,8 @@
       position:absolute;
       inset:0 auto 0 0;
       width:1%;
-      background:linear-gradient(90deg,#8c0000 0%,#e50000 55%,#ff1e1e 100%);
-      box-shadow:0 0 16px rgba(255,0,0,.32);
+      background:linear-gradient(90deg,#9ea3a4 0%,#e5e7e7 55%,#ffffff 100%);
+      box-shadow:0 0 16px rgba(255,255,255,.22);
       transition:width .13s linear;
       animation:barFlicker 3.2s steps(1,end) infinite
     }
@@ -1282,8 +1291,8 @@
       top:-30%;
       width:10px;
       height:160%;
-      background:#ff3b3b;
-      opacity:.46;
+      background:#ffffff;
+      opacity:.52;
       filter:blur(2px)
     }
     @keyframes barFlicker{
@@ -1368,6 +1377,7 @@
   </section>
   <section id="introLoading" class="screen">
     <div class="hollow-loading">
+      <canvas id="loading3d" class="loading-3d" aria-label="Animated memories loading scene"></canvas>
       <div class="loading-fog"></div>
       <div class="loading-fog fog-b"></div>
       <div class="loading-scanlines"></div>
@@ -1530,6 +1540,8 @@
   let phoneMessageRead=false;
   let prologueTitleTimers=[];
 
+  let loading3D=null;
+  let loading3DRunning=false;
   let threeGame=null;
   let threeRunning=false;
   let phoneRigTarget=0;
@@ -1687,14 +1699,14 @@
     lp.type='lowpass';
     lp.frequency.value=running?980:720;
 
-    const base=running?.050:.035;
+    const base=(running?.050:.035)*1.4;
     noiseGain.gain.setValueAtTime(base,now);
     noiseGain.gain.exponentialRampToValueAtTime(.0001,now+(running?.12:.16));
 
     thump.type='sine';
     thump.frequency.setValueAtTime(running?92:74,now);
     thump.frequency.exponentialRampToValueAtTime(running?48:42,now+(running?.11:.14));
-    thumpGain.gain.setValueAtTime(running?.042:.027,now);
+    thumpGain.gain.setValueAtTime((running?.042:.027)*1.4,now);
     thumpGain.gain.exponentialRampToValueAtTime(.0001,now+(running?.13:.17));
 
     noise.connect(hp);
@@ -2055,6 +2067,354 @@
       p.style.setProperty('--scale',scale.toFixed(2));
 
       layer.appendChild(p);
+    }
+  }
+
+  function makeMemoryPhotoTexture(kind){
+    const canvas=document.createElement('canvas');
+    canvas.width=512;
+    canvas.height=640;
+    const ctx=canvas.getContext('2d');
+
+    // Faded photographic paper.
+    const g=ctx.createLinearGradient(0,0,512,640);
+    g.addColorStop(0,'#33383a');
+    g.addColorStop(.55,'#171b1d');
+    g.addColorStop(1,'#080a0b');
+    ctx.fillStyle=g;
+    ctx.fillRect(0,0,512,640);
+
+    // Film grain / age.
+    for(let i=0;i<5200;i++){
+      const a=Math.random()*.075;
+      const v=120+Math.random()*100;
+      ctx.fillStyle='rgba('+v+','+v+','+v+','+a+')';
+      ctx.fillRect(Math.random()*512,Math.random()*640,1+Math.random()*2,1+Math.random()*2);
+    }
+
+    // Soft vignette.
+    const vig=ctx.createRadialGradient(256,280,60,256,320,390);
+    vig.addColorStop(0,'rgba(255,255,255,.035)');
+    vig.addColorStop(.62,'rgba(0,0,0,.06)');
+    vig.addColorStop(1,'rgba(0,0,0,.62)');
+    ctx.fillStyle=vig;
+    ctx.fillRect(0,0,512,640);
+
+    function person(x,y,scale,shade,shirt){
+      ctx.save();
+      ctx.translate(x,y);
+      ctx.scale(scale,scale);
+
+      // torso / shoulders
+      ctx.fillStyle=shirt;
+      ctx.beginPath();
+      ctx.ellipse(0,115,82,92,0,0,Math.PI*2);
+      ctx.fill();
+
+      // neck
+      ctx.fillStyle=shade;
+      ctx.fillRect(-20,42,40,46);
+
+      // head
+      ctx.beginPath();
+      ctx.ellipse(0,0,48,60,0,0,Math.PI*2);
+      ctx.fill();
+
+      // subtle facial shadow, deliberately non-specific.
+      ctx.fillStyle='rgba(0,0,0,.24)';
+      ctx.beginPath();
+      ctx.ellipse(10,8,26,39,-.08,0,Math.PI*2);
+      ctx.fill();
+
+      ctx.restore();
+    }
+
+    if(kind==='brothers'){
+      // Casual selfie / family picture of Noah and Elias.
+      ctx.save();
+      ctx.translate(0,18);
+      ctx.rotate(-.025);
+      person(188,235,1.02,'#857367','#2f3b40');
+      person(326,252,.94,'#765f55','#282e34');
+
+      // faint background window / apartment light.
+      ctx.fillStyle='rgba(170,185,188,.07)';
+      ctx.fillRect(80,78,352,120);
+      ctx.strokeStyle='rgba(215,220,218,.08)';
+      ctx.lineWidth=4;
+      ctx.strokeRect(80,78,352,120);
+
+      ctx.fillStyle='rgba(228,228,220,.66)';
+      ctx.font='22px Georgia,serif';
+      ctx.fillText('NOAH + ELIAS',34,592);
+      ctx.font='15px system-ui,sans-serif';
+      ctx.fillStyle='rgba(210,212,208,.44)';
+      ctx.fillText('before everything changed',35,617);
+      ctx.restore();
+    }else{
+      // Elias foreground with the Hollow standing behind him.
+      person(215,300,.92,'#715a50','#252c30');
+
+      // Hollow: tall, dark, unnaturally thin silhouette.
+      ctx.save();
+      ctx.translate(350,205);
+      ctx.fillStyle='rgba(0,0,0,.94)';
+      ctx.beginPath();
+      ctx.ellipse(0,0,34,46,0,0,Math.PI*2);
+      ctx.fill();
+      ctx.fillRect(-25,40,50,190);
+      ctx.beginPath();
+      ctx.moveTo(-20,70); ctx.lineTo(-68,245); ctx.lineTo(-48,252); ctx.lineTo(0,118);
+      ctx.lineTo(48,252); ctx.lineTo(68,245); ctx.lineTo(20,70); ctx.closePath();
+      ctx.fill();
+
+      // Hollow aura.
+      const aura=ctx.createRadialGradient(0,105,20,0,105,170);
+      aura.addColorStop(0,'rgba(90,120,130,.11)');
+      aura.addColorStop(.45,'rgba(45,55,58,.10)');
+      aura.addColorStop(1,'rgba(0,0,0,0)');
+      ctx.fillStyle=aura;
+      ctx.fillRect(-190,-70,380,360);
+      ctx.restore();
+
+      ctx.fillStyle='rgba(228,228,220,.58)';
+      ctx.font='22px Georgia,serif';
+      ctx.fillText('ELIAS',34,592);
+      ctx.font='15px system-ui,sans-serif';
+      ctx.fillStyle='rgba(210,212,208,.34)';
+      ctx.fillText('date unreadable',35,617);
+    }
+
+    // Scratches.
+    ctx.strokeStyle='rgba(235,235,230,.08)';
+    ctx.lineWidth=1;
+    for(let i=0;i<22;i++){
+      ctx.beginPath();
+      const x=Math.random()*512;
+      ctx.moveTo(x,Math.random()*640);
+      ctx.lineTo(x+Math.random()*18-9,Math.random()*640);
+      ctx.stroke();
+    }
+
+    const texture=new THREE.CanvasTexture(canvas);
+    texture.minFilter=THREE.LinearFilter;
+    texture.magFilter=THREE.LinearFilter;
+    texture.encoding=THREE.sRGBEncoding;
+    return texture;
+  }
+
+  function initLoading3D(){
+    if(loading3D||!window.THREE) return !!loading3D;
+
+    const canvas=$('loading3d');
+    if(!canvas) return false;
+
+    const renderer=new THREE.WebGLRenderer({
+      canvas,
+      antialias:true,
+      alpha:false,
+      powerPreference:'high-performance'
+    });
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio||1,1.4));
+    renderer.setClearColor(0x010203,1);
+    renderer.outputEncoding=THREE.sRGBEncoding;
+    renderer.toneMapping=THREE.ACESFilmicToneMapping;
+    renderer.toneMappingExposure=.62;
+
+    const scene=new THREE.Scene();
+    scene.background=new THREE.Color(0x010203);
+    scene.fog=new THREE.FogExp2(0x020405,.12);
+
+    const camera=new THREE.PerspectiveCamera(48,1,.05,40);
+    camera.position.set(0,4.65,4.2);
+    camera.lookAt(0,.05,-.45);
+
+    // Dark close-up surface under the photos.
+    const floorMat=new THREE.MeshStandardMaterial({
+      color:0x0b0e0f,
+      roughness:.86,
+      metalness:.08
+    });
+    const floor=new THREE.Mesh(new THREE.PlaneGeometry(13,10),floorMat);
+    floor.rotation.x=-Math.PI/2;
+    floor.position.y=0;
+    scene.add(floor);
+
+    const familyTex=makeMemoryPhotoTexture('brothers');
+    const hollowTex=makeMemoryPhotoTexture('hollow');
+
+    function makePhoto(texture,x,z,angle){
+      const group=new THREE.Group();
+
+      const border=new THREE.Mesh(
+        new THREE.BoxGeometry(2.5,.055,3.25),
+        new THREE.MeshStandardMaterial({
+          color:0x9a978d,
+          roughness:.92,
+          metalness:0
+        })
+      );
+      border.position.y=.035;
+      border.castShadow=true;
+      border.receiveShadow=true;
+      group.add(border);
+
+      const image=new THREE.Mesh(
+        new THREE.PlaneGeometry(2.18,2.78),
+        new THREE.MeshStandardMaterial({
+          map:texture,
+          roughness:.76,
+          metalness:0,
+          emissive:0x080a0b,
+          emissiveIntensity:.08
+        })
+      );
+      image.rotation.x=-Math.PI/2;
+      image.position.set(0,.071,-.08);
+      image.receiveShadow=true;
+      group.add(image);
+
+      group.position.set(x,0,z);
+      group.rotation.y=angle;
+      scene.add(group);
+      return {group,image};
+    }
+
+    const photoA=makePhoto(familyTex,-1.25,-.3,-.16);
+    const photoB=makePhoto(hollowTex,1.12,-.58,.15);
+
+    // A couple of scattered old objects around the memories.
+    const paperMat=new THREE.MeshStandardMaterial({color:0x272a29,roughness:1});
+    for(let i=0;i<7;i++){
+      const scrap=new THREE.Mesh(
+        new THREE.PlaneGeometry(.55+Math.random()*.5,.35+Math.random()*.7),
+        paperMat
+      );
+      scrap.rotation.x=-Math.PI/2;
+      scrap.rotation.z=(Math.random()-.5)*1.3;
+      scrap.position.set((Math.random()-.5)*6,.012,-3+Math.random()*5);
+      scene.add(scrap);
+    }
+
+    const ambient=new THREE.HemisphereLight(0x60717a,0x010203,.28);
+    scene.add(ambient);
+
+    const coolLight=new THREE.PointLight(0xa9c2ca,.85,8,2);
+    coolLight.position.set(-1.7,3.2,1.2);
+    scene.add(coolLight);
+
+    const memoryGlow=new THREE.PointLight(0xcfdadd,.42,4,2);
+    memoryGlow.position.set(1.25,1.05,-.55);
+    scene.add(memoryGlow);
+
+    // Floating dust across the whole frame.
+    const dustCount=320;
+    const dustData=new Float32Array(dustCount*3);
+    for(let i=0;i<dustCount;i++){
+      dustData[i*3]=(Math.random()-.5)*8;
+      dustData[i*3+1]=.12+Math.random()*4;
+      dustData[i*3+2]=-4+Math.random()*8;
+    }
+    const dustGeo=new THREE.BufferGeometry();
+    dustGeo.setAttribute('position',new THREE.BufferAttribute(dustData,3));
+    const dust=new THREE.Points(
+      dustGeo,
+      new THREE.PointsMaterial({
+        color:0x97a6aa,
+        size:.018,
+        transparent:true,
+        opacity:.22,
+        depthWrite:false,
+        blending:THREE.AdditiveBlending
+      })
+    );
+    scene.add(dust);
+
+    // Brighter emitted particles clustered around Elias + the Hollow photo.
+    const glowCount=70;
+    const glowData=new Float32Array(glowCount*3);
+    for(let i=0;i<glowCount;i++){
+      glowData[i*3]=1.12+(Math.random()-.5)*2.6;
+      glowData[i*3+1]=.08+Math.random()*1.8;
+      glowData[i*3+2]=-.58+(Math.random()-.5)*2.9;
+    }
+    const glowGeo=new THREE.BufferGeometry();
+    glowGeo.setAttribute('position',new THREE.BufferAttribute(glowData,3));
+    const glowParticles=new THREE.Points(
+      glowGeo,
+      new THREE.PointsMaterial({
+        color:0xdde8ea,
+        size:.032,
+        transparent:true,
+        opacity:.48,
+        depthWrite:false,
+        blending:THREE.AdditiveBlending
+      })
+    );
+    scene.add(glowParticles);
+
+    loading3D={
+      renderer,scene,camera,photoA,photoB,dust,glowParticles,memoryGlow,
+      lastTime:performance.now(),
+      raf:0
+    };
+
+    const resize=()=>{
+      if(!loading3D) return;
+      const rect=$('introLoading').getBoundingClientRect();
+      if(rect.width<2||rect.height<2) return;
+      renderer.setSize(rect.width,rect.height,false);
+      camera.aspect=rect.width/rect.height;
+      camera.updateProjectionMatrix();
+    };
+    loading3D.resize=resize;
+    resize();
+    window.addEventListener('resize',resize);
+
+    return true;
+  }
+
+  function animateLoading3D(now){
+    if(!loading3D||!loading3DRunning) return;
+
+    const g=loading3D;
+    const dt=Math.min(.04,Math.max(.001,(now-g.lastTime)/1000));
+    g.lastTime=now;
+
+    // Barely-moving close-up camera, like a memory breathing.
+    g.camera.position.x=Math.sin(now*.00018)*.09;
+    g.camera.position.y=4.65+Math.sin(now*.00023)*.035;
+    g.camera.position.z=4.2+Math.cos(now*.00016)*.06;
+    g.camera.lookAt(0,.05,-.45);
+
+    // Photos subtly drift as if the room itself is unstable.
+    g.photoA.group.rotation.y=-.16+Math.sin(now*.00028)*.012;
+    g.photoB.group.rotation.y=.15+Math.sin(now*.00031+1.4)*.016;
+
+    // Dust and light motes.
+    g.dust.rotation.y+=dt*.015;
+    g.dust.position.y=Math.sin(now*.00045)*.05;
+    g.glowParticles.rotation.y-=dt*.09;
+    g.glowParticles.position.y=.06+Math.sin(now*.0013)*.07;
+    g.memoryGlow.intensity=.34+.12*Math.sin(now*.0022)+.06*Math.sin(now*.009);
+
+    g.renderer.render(g.scene,g.camera);
+    g.raf=requestAnimationFrame(animateLoading3D);
+  }
+
+  function startLoading3D(){
+    if(!initLoading3D()) return;
+    loading3DRunning=true;
+    loading3D.lastTime=performance.now();
+    loading3D.resize?.();
+    if(!loading3D.raf) loading3D.raf=requestAnimationFrame(animateLoading3D);
+  }
+
+  function stopLoading3D(){
+    loading3DRunning=false;
+    if(loading3D&&loading3D.raf){
+      cancelAnimationFrame(loading3D.raf);
+      loading3D.raf=0;
     }
   }
 
@@ -2871,6 +3231,9 @@
 
     if(id==='game') startThreeGame();
     else pauseThreeGame();
+
+    if(id==='introLoading') startLoading3D();
+    else stopLoading3D();
 
     if(id==='home'||id==='settings'){
       startMenuAmbience();
