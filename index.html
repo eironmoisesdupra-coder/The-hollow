@@ -2096,15 +2096,69 @@
     camera.position.set(0,4.65,4.2);
     camera.lookAt(0,.05,-.45);
 
-    // Dark close-up surface under the photos.
+    // Dark, stained concrete ground beneath the memory photos.
+    // Procedural texture keeps the loading scene lightweight while giving
+    // the pictures a real surface to sit on.
+    const groundCanvas=document.createElement('canvas');
+    groundCanvas.width=512;
+    groundCanvas.height=512;
+    const groundCtx=groundCanvas.getContext('2d');
+
+    const groundGradient=groundCtx.createLinearGradient(0,0,512,512);
+    groundGradient.addColorStop(0,'#171b1c');
+    groundGradient.addColorStop(.48,'#0e1112');
+    groundGradient.addColorStop(1,'#07090a');
+    groundCtx.fillStyle=groundGradient;
+    groundCtx.fillRect(0,0,512,512);
+
+    // Concrete pores, grime, water marks and faint scratches.
+    for(let i=0;i<5200;i++){
+      const v=18+Math.floor(Math.random()*38);
+      const a=.018+Math.random()*.055;
+      groundCtx.fillStyle='rgba('+v+','+(v+2)+','+(v+3)+','+a+')';
+      const size=.6+Math.random()*3.4;
+      groundCtx.fillRect(Math.random()*512,Math.random()*512,size,size);
+    }
+
+    for(let i=0;i<46;i++){
+      const x=Math.random()*512;
+      const y=Math.random()*512;
+      const r=16+Math.random()*62;
+      const stain=groundCtx.createRadialGradient(x,y,2,x,y,r);
+      stain.addColorStop(0,'rgba(0,0,0,'+(.04+Math.random()*.08)+')');
+      stain.addColorStop(.65,'rgba(15,20,21,.035)');
+      stain.addColorStop(1,'rgba(0,0,0,0)');
+      groundCtx.fillStyle=stain;
+      groundCtx.fillRect(x-r,y-r,r*2,r*2);
+    }
+
+    groundCtx.strokeStyle='rgba(115,125,128,.055)';
+    groundCtx.lineWidth=1;
+    for(let i=0;i<30;i++){
+      groundCtx.beginPath();
+      const x=Math.random()*512;
+      const y=Math.random()*512;
+      groundCtx.moveTo(x,y);
+      groundCtx.lineTo(x+Math.random()*110-55,y+Math.random()*20-10);
+      groundCtx.stroke();
+    }
+
+    const groundTex=new THREE.CanvasTexture(groundCanvas);
+    groundTex.wrapS=groundTex.wrapT=THREE.RepeatWrapping;
+    groundTex.repeat.set(2.2,1.7);
+    groundTex.anisotropy=2;
+    groundTex.encoding=THREE.sRGBEncoding;
+
     const floorMat=new THREE.MeshStandardMaterial({
-      color:0x0b0e0f,
-      roughness:.86,
-      metalness:.08
+      map:groundTex,
+      color:0x8e9495,
+      roughness:.94,
+      metalness:.04
     });
     const floor=new THREE.Mesh(new THREE.PlaneGeometry(13,10),floorMat);
     floor.rotation.x=-Math.PI/2;
     floor.position.y=0;
+    floor.receiveShadow=true;
     scene.add(floor);
 
     const textureLoader=new THREE.TextureLoader();
@@ -2174,6 +2228,118 @@
 
     const photoA=makePhoto(familyTex,-1.25,-.3,-.16);
     const photoB=makePhoto(hollowTex,1.12,-.58,.15);
+
+    // Broken glass fragments surrounding the photos. They stay mostly around
+    // the edges so neither face is obscured.
+    const glassMaterial=new THREE.MeshStandardMaterial({
+      color:0xc7d2d4,
+      transparent:true,
+      opacity:.22,
+      roughness:.10,
+      metalness:.18,
+      side:THREE.DoubleSide,
+      depthWrite:false
+    });
+    const glassEdgeMaterial=new THREE.LineBasicMaterial({
+      color:0xd9e4e6,
+      transparent:true,
+      opacity:.28
+    });
+
+    const shardZones=[
+      [-3.45,-2.9],[-2.9,-2.0],[-2.65,1.55],[-1.9,1.95],
+      [-.25,-2.7],[.15,1.95],[2.55,-2.55],[3.1,-1.45],
+      [2.75,1.3],[3.45,.25],[-3.25,.45],[-.35,-2.25]
+    ];
+
+    const glassShards=[];
+    shardZones.forEach((zone,index)=>{
+      const pieces=2+(index%3);
+      for(let i=0;i<pieces;i++){
+        const cx=zone[0]+(Math.random()-.5)*.72;
+        const cz=zone[1]+(Math.random()-.5)*.72;
+        const scale=.10+Math.random()*.28;
+
+        const positions=new Float32Array([
+          -scale*.55,0,scale*.48,
+           scale*.72,0,scale*.22,
+          -scale*.08,0,-scale*.72
+        ]);
+        const geo=new THREE.BufferGeometry();
+        geo.setAttribute('position',new THREE.BufferAttribute(positions,3));
+        geo.computeVertexNormals();
+
+        const shard=new THREE.Mesh(geo,glassMaterial);
+        shard.rotation.x=-Math.PI/2+(Math.random()-.5)*.035;
+        shard.rotation.z=Math.random()*Math.PI*2;
+        shard.position.set(cx,.028+Math.random()*.012,cz);
+        scene.add(shard);
+
+        const edges=new THREE.LineSegments(
+          new THREE.EdgesGeometry(geo),
+          glassEdgeMaterial
+        );
+        edges.rotation.copy(shard.rotation);
+        edges.position.copy(shard.position);
+        scene.add(edges);
+
+        glassShards.push({shard,edges,phase:Math.random()*Math.PI*2});
+      }
+    });
+
+    // Small secondary fragments closer to the photos, still outside the faces.
+    for(let i=0;i<16;i++){
+      const side=i%2===0?-1:1;
+      const angle=Math.random()*Math.PI*2;
+      const radius=1.55+Math.random()*.7;
+      const centerX=side<0?-1.25:1.12;
+      const centerZ=side<0?-.3:-.58;
+      const cx=centerX+Math.cos(angle)*radius;
+      const cz=centerZ+Math.sin(angle)*radius;
+      const scale=.045+Math.random()*.09;
+      const geo=new THREE.BufferGeometry();
+      geo.setAttribute('position',new THREE.BufferAttribute(new Float32Array([
+        -scale,0,scale*.6,
+         scale*.9,0,scale*.35,
+         0,0,-scale
+      ]),3));
+      geo.computeVertexNormals();
+
+      const shard=new THREE.Mesh(geo,glassMaterial);
+      shard.rotation.x=-Math.PI/2;
+      shard.rotation.z=Math.random()*Math.PI*2;
+      shard.position.set(cx,.024,cz);
+      scene.add(shard);
+      glassShards.push({shard,edges:null,phase:Math.random()*Math.PI*2});
+    }
+
+    // A dim overhead bulb and two soft white spotlights create a controlled
+    // "light kiss" directly across the photographs without washing them out.
+    const bulbMaterial=new THREE.MeshStandardMaterial({
+      color:0xe5e7e3,
+      emissive:0xffffff,
+      emissiveIntensity:.72,
+      roughness:.24
+    });
+    const bulb=new THREE.Mesh(new THREE.SphereGeometry(.075,12,8),bulbMaterial);
+    bulb.position.set(0,3.45,1.45);
+    scene.add(bulb);
+
+    const bulbHalo=new THREE.PointLight(0xf3f6f4,.22,5.2,2);
+    bulbHalo.position.copy(bulb.position);
+    scene.add(bulbHalo);
+
+    function makePhotoKissLight(x,z,intensity){
+      const light=new THREE.SpotLight(0xf7faf8,intensity,7.2,Math.PI*.22,.82,1.55);
+      light.position.set(x*.28,3.15,1.05);
+      light.target.position.set(x,.02,z);
+      scene.add(light);
+      scene.add(light.target);
+      return light;
+    }
+
+    const photoLightA=makePhotoKissLight(-1.25,-.3,.58);
+    const photoLightB=makePhotoKissLight(1.12,-.58,.54);
 
     // A couple of scattered old objects around the memories.
     const paperMat=new THREE.MeshStandardMaterial({color:0x272a29,roughness:1});
@@ -2247,6 +2413,7 @@
 
     loading3D={
       renderer,scene,camera,photoA,photoB,dust,glowParticles,memoryGlow,
+      glassShards,bulb,bulbHalo,photoLightA,photoLightB,
       lastTime:performance.now(),
       raf:0
     };
@@ -2289,6 +2456,21 @@
     g.glowParticles.rotation.y-=dt*.09;
     g.glowParticles.position.y=.06+Math.sin(now*.0013)*.07;
     g.memoryGlow.intensity=.34+.12*Math.sin(now*.0022)+.06*Math.sin(now*.009);
+
+    // Very soft light breathing, like an old overhead bulb warming the prints.
+    const lightBreath=.96+.04*Math.sin(now*.00135);
+    if(g.photoLightA) g.photoLightA.intensity=.58*lightBreath;
+    if(g.photoLightB) g.photoLightB.intensity=.54*(.97+.03*Math.sin(now*.0016+1.1));
+    if(g.bulbHalo) g.bulbHalo.intensity=.20+.025*Math.sin(now*.0018);
+
+    // Glass only catches tiny highlights; it does not move across the photos.
+    if(g.glassShards){
+      g.glassShards.forEach((item,index)=>{
+        if(!item.shard||!item.shard.material) return;
+        const twinkle=.18+.055*Math.max(0,Math.sin(now*.0011+item.phase+index*.17));
+        item.shard.material.opacity=Math.min(.29,twinkle);
+      });
+    }
 
     g.renderer.render(g.scene,g.camera);
     g.raf=requestAnimationFrame(animateLoading3D);
