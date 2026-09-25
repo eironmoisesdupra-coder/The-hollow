@@ -179,38 +179,46 @@
         0 9px 20px rgba(0,0,0,.95),
         1px 0 rgba(120,0,0,.18),
         -1px 0 rgba(120,160,170,.14);
+      isolation:isolate;
+      overflow:visible;
       animation:
         hollowTitleGlitch 2.4s steps(1,end) infinite,
         hollowTitlePulse 4.8s ease-in-out infinite
     }
-    .menu-title:before{
-      content:attr(data-text);
-      position:absolute;
-      inset:0;
-      z-index:1;
-      color:transparent;
-      -webkit-text-fill-color:transparent;
-      -webkit-background-clip:text;
-      background-clip:text;
-      background:
-        repeating-linear-gradient(176deg,transparent 0 8px,rgba(0,0,0,.34) 9px 11px,transparent 12px 17px),
-        repeating-linear-gradient(91deg,transparent 0 31px,rgba(0,0,0,.22) 32px 34px,transparent 35px 52px);
-      mix-blend-mode:multiply;
-      pointer-events:none;
-      animation:hollowTitleSliceA 1.9s steps(1,end) infinite
-    }
+    .menu-title:before,
     .menu-title:after{
       content:attr(data-text);
       position:absolute;
       inset:0;
-      z-index:-1;
-      transform:translate(2px,1px);
-      color:rgba(72,5,7,.40);
-      -webkit-text-fill-color:rgba(72,5,7,.40);
-      clip-path:polygon(0 13%,100% 7%,100% 24%,0 31%,0 55%,100% 48%,100% 69%,0 76%,0 92%,100% 86%,100% 100%,0 100%);
-      opacity:.48;
       pointer-events:none;
-      animation:hollowTitleSliceB 2.2s steps(1,end) infinite
+      white-space:nowrap;
+      font:inherit;
+      line-height:inherit;
+      letter-spacing:inherit;
+      text-transform:inherit;
+      filter:url(#hollowDistress) contrast(1.18);
+      opacity:0;
+      mix-blend-mode:screen
+    }
+    .menu-title:before{
+      z-index:3;
+      color:#e7e5df;
+      -webkit-text-fill-color:#e7e5df;
+      text-shadow:
+        -4px 0 rgba(45,205,225,.78),
+        4px 0 rgba(170,0,8,.62),
+        0 1px 6px rgba(255,255,255,.12);
+      animation:hollowTitleSliceA 1.55s steps(1,end) infinite
+    }
+    .menu-title:after{
+      z-index:4;
+      color:#8d171b;
+      -webkit-text-fill-color:#8d171b;
+      text-shadow:
+        4px 0 rgba(235,20,25,.82),
+        -3px 0 rgba(55,175,195,.52),
+        0 1px 5px rgba(0,0,0,.8);
+      animation:hollowTitleSliceB 1.82s steps(1,end) infinite
     }
 
     @keyframes hollowTitleGlitch{
@@ -237,99 +245,147 @@
       52%{opacity:.98}
     }
     @keyframes hollowTitleSliceA{
-      0%,13%,17%,31%,35%,49%,53%,67%,71%,85%,89%,100%{
+      0%,8%,14%,25%,31%,43%,49%,61%,67%,79%,85%,96%,100%{
+        opacity:0;
         transform:translateX(0);
-        clip-path:inset(0 0 0 0)
+        clip-path:inset(0 0 100% 0)
       }
-      14%{
-        transform:translateX(-5px);
-        clip-path:inset(8% 0 68% 0)
+      9%{
+        opacity:.88;
+        transform:translateX(-7px);
+        clip-path:inset(7% 0 70% 0)
       }
-      15%{
+      10%{
+        opacity:.78;
         transform:translateX(6px);
-        clip-path:inset(42% 0 36% 0)
+        clip-path:inset(39% 0 38% 0)
       }
-      16%{
-        transform:translateX(-2px);
-        clip-path:inset(72% 0 8% 0)
+      11%{
+        opacity:.9;
+        transform:translateX(-3px);
+        clip-path:inset(70% 0 9% 0)
       }
-      32%{
-        transform:translateX(4px);
-        clip-path:inset(22% 0 55% 0)
-      }
-      33%{
-        transform:translateX(-6px);
-        clip-path:inset(58% 0 20% 0)
-      }
-      50%{
-        transform:translateX(-4px);
-        clip-path:inset(15% 0 62% 0)
-      }
-      51%{
+      26%{
+        opacity:.82;
         transform:translateX(5px);
-        clip-path:inset(64% 0 12% 0)
+        clip-path:inset(18% 0 59% 0)
       }
-      68%{
-        transform:translateX(4px);
-        clip-path:inset(36% 0 38% 0)
+      27%{
+        opacity:.92;
+        transform:translateX(-6px);
+        clip-path:inset(57% 0 20% 0)
       }
-      69%{
+      44%{
+        opacity:.86;
         transform:translateX(-5px);
-        clip-path:inset(70% 0 10% 0)
+        clip-path:inset(28% 0 49% 0)
       }
-      86%{
-        transform:translateX(-4px);
-        clip-path:inset(18% 0 60% 0)
+      45%{
+        opacity:.76;
+        transform:translateX(7px);
+        clip-path:inset(63% 0 14% 0)
       }
-      87%{
+      62%{
+        opacity:.9;
         transform:translateX(6px);
-        clip-path:inset(52% 0 24% 0)
+        clip-path:inset(11% 0 66% 0)
+      }
+      63%{
+        opacity:.8;
+        transform:translateX(-6px);
+        clip-path:inset(49% 0 28% 0)
+      }
+      80%{
+        opacity:.86;
+        transform:translateX(-5px);
+        clip-path:inset(34% 0 43% 0)
+      }
+      81%{
+        opacity:.8;
+        transform:translateX(7px);
+        clip-path:inset(73% 0 7% 0)
+      }
+      97%{
+        opacity:.82;
+        transform:translateX(5px);
+        clip-path:inset(22% 0 54% 0)
+      }
+      98%{
+        opacity:.9;
+        transform:translateX(-6px);
+        clip-path:inset(60% 0 17% 0)
       }
     }
     @keyframes hollowTitleSliceB{
-      0%,11%,15%,29%,33%,47%,51%,65%,69%,83%,87%,100%{
-        transform:translate(2px,1px);
-        opacity:.48
+      0%,11%,17%,28%,34%,46%,52%,64%,70%,82%,88%,100%{
+        opacity:0;
+        transform:translateX(0);
+        clip-path:inset(0 0 100% 0)
       }
       12%{
-        transform:translate(8px,0);
-        opacity:.72
+        opacity:.68;
+        transform:translateX(8px);
+        clip-path:inset(16% 0 62% 0)
       }
       13%{
-        transform:translate(-7px,2px);
-        opacity:.6
+        opacity:.82;
+        transform:translateX(-7px);
+        clip-path:inset(53% 0 25% 0)
+      }
+      14%{
+        opacity:.72;
+        transform:translateX(4px);
+        clip-path:inset(77% 0 5% 0)
+      }
+      29%{
+        opacity:.78;
+        transform:translateX(-7px);
+        clip-path:inset(9% 0 68% 0)
       }
       30%{
-        transform:translate(-6px,1px);
-        opacity:.68
+        opacity:.66;
+        transform:translateX(7px);
+        clip-path:inset(44% 0 33% 0)
       }
-      31%{
-        transform:translate(7px,-1px);
-        opacity:.58
+      47%{
+        opacity:.8;
+        transform:translateX(7px);
+        clip-path:inset(26% 0 50% 0)
       }
       48%{
-        transform:translate(6px,2px);
-        opacity:.7
+        opacity:.7;
+        transform:translateX(-8px);
+        clip-path:inset(67% 0 12% 0)
       }
-      49%{
-        transform:translate(-8px,0);
-        opacity:.56
+      65%{
+        opacity:.76;
+        transform:translateX(-6px);
+        clip-path:inset(13% 0 64% 0)
       }
       66%{
-        transform:translate(-5px,2px);
-        opacity:.68
+        opacity:.84;
+        transform:translateX(8px);
+        clip-path:inset(51% 0 26% 0)
       }
-      67%{
-        transform:translate(8px,-1px);
-        opacity:.58
+      83%{
+        opacity:.82;
+        transform:translateX(7px);
+        clip-path:inset(31% 0 46% 0)
       }
       84%{
-        transform:translate(7px,1px);
-        opacity:.72
+        opacity:.7;
+        transform:translateX(-7px);
+        clip-path:inset(71% 0 8% 0)
       }
-      85%{
-        transform:translate(-7px,0);
-        opacity:.56
+      89%{
+        opacity:.74;
+        transform:translateX(-6px);
+        clip-path:inset(20% 0 57% 0)
+      }
+      90%{
+        opacity:.86;
+        transform:translateX(7px);
+        clip-path:inset(58% 0 20% 0)
       }
     }
 
