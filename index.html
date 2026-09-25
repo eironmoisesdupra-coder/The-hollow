@@ -252,6 +252,105 @@
       box-shadow:inset 0 0 clamp(40px,8vw,120px) rgba(0,0,0,.38)
     }
     .prologue-scene{transition:opacity .45s ease}
+    .game-reticle{
+      position:absolute;
+      z-index:11;
+      left:50%;
+      top:50%;
+      width:8px;
+      height:8px;
+      margin:-4px 0 0 -4px;
+      border:1px solid rgba(228,233,234,.5);
+      border-radius:50%;
+      pointer-events:none;
+      box-shadow:0 0 7px rgba(210,225,230,.1);
+      transition:.16s ease
+    }
+    .game-reticle:after{
+      content:"";
+      position:absolute;
+      left:50%;
+      top:50%;
+      width:2px;
+      height:2px;
+      border-radius:50%;
+      background:rgba(232,236,237,.72);
+      transform:translate(-50%,-50%)
+    }
+    .game-reticle.target{
+      width:12px;
+      height:12px;
+      margin:-6px 0 0 -6px;
+      border-color:rgba(240,244,244,.9);
+      box-shadow:0 0 10px rgba(230,240,242,.22)
+    }
+    .interaction-prompt{
+      position:absolute;
+      z-index:12;
+      left:50%;
+      top:58%;
+      transform:translate(-50%,8px);
+      min-width:150px;
+      max-width:72vw;
+      padding:9px 15px;
+      border:1px solid rgba(205,215,218,.18);
+      background:rgba(3,5,6,.72);
+      color:#d9dddd;
+      opacity:0;
+      pointer-events:none;
+      font:600 9px system-ui,sans-serif;
+      letter-spacing:.16em;
+      text-transform:uppercase;
+      backdrop-filter:blur(4px);
+      transition:opacity .16s ease,transform .16s ease
+    }
+    .interaction-prompt.visible{
+      opacity:1;
+      transform:translate(-50%,0);
+      pointer-events:auto
+    }
+    .flashlight-btn{
+      position:absolute;
+      z-index:10;
+      right:max(16px,env(safe-area-inset-right));
+      bottom:max(142px,calc(env(safe-area-inset-bottom) + 130px));
+      min-width:102px;
+      height:42px;
+      padding:0 13px;
+      border-radius:4px;
+      border:1px solid rgba(183,195,198,.15);
+      background:rgba(4,7,8,.66);
+      color:rgba(216,222,223,.68);
+      font:600 8px system-ui,sans-serif;
+      letter-spacing:.16em;
+      text-transform:uppercase;
+      backdrop-filter:blur(4px);
+      touch-action:none
+    }
+    .flashlight-btn.active{
+      color:#f2f5f4;
+      border-color:rgba(218,231,233,.35);
+      background:rgba(45,55,57,.65);
+      box-shadow:0 0 18px rgba(205,230,235,.10)
+    }
+    #game.gameplay-live .storybox{
+      opacity:0;
+      transform:translateY(16px);
+      pointer-events:none
+    }
+    #game.gameplay-live .storybox{
+      transition:opacity .45s ease,transform .45s ease
+    }
+    .scare-blackout{
+      position:absolute;
+      inset:0;
+      z-index:19;
+      background:#000;
+      opacity:0;
+      pointer-events:none;
+      transition:opacity .09s linear
+    }
+    .scare-blackout.on{opacity:1}
     .survival-hud{
       position:absolute;
       z-index:9;
@@ -697,6 +796,7 @@
       .survival-hud{top:max(10px,env(safe-area-inset-top))}
       .energy-hud{width:min(160px,28vw);bottom:max(70px,calc(env(safe-area-inset-bottom) + 58px))}
       .sprint-btn{height:42px;min-width:92px}
+      .flashlight-btn{height:38px;min-width:92px;bottom:max(122px,calc(env(safe-area-inset-bottom) + 108px))}
       .storybox{width:min(64vw,680px);padding:10px 14px;margin-left:auto;margin-right:max(16px,8vw)}
       .storybox p{font-size:12px;margin-bottom:9px}
       .storybox button{min-height:38px}
@@ -1445,6 +1545,9 @@
   <section id="game" class="screen">
     <div class="prologue-scene"></div>
     <canvas id="game3d" class="game3d" aria-label="3D Hollow House hallway"></canvas>
+    <div id="scareBlackout" class="scare-blackout" aria-hidden="true"></div>
+    <div id="gameReticle" class="game-reticle" aria-hidden="true"></div>
+    <button id="interactPrompt" class="interaction-prompt" type="button">Interact</button>
     <div class="survival-hud" aria-label="Lives">
       <div class="lives-label">Lives</div>
       <div id="livesRow" class="lives-row">
@@ -1467,6 +1570,7 @@
       <div class="energy-meta"><span>Energy</span><span id="energyText">100%</span></div>
       <div class="energy-shell"><div id="energyFill" class="energy-fill"></div></div>
     </div>
+    <button id="flashlightBtn" class="flashlight-btn" type="button" aria-pressed="false">Flashlight</button>
     <button id="sprintBtn" class="sprint-btn" type="button" aria-pressed="false">Sprint</button>
     <div class="storybox">
       <p id="storyText">The fluorescent light stutters overhead. Rain echoes somewhere beyond the walls, but every window opens onto darkness.</p>
@@ -1546,6 +1650,12 @@
   let threeRunning=false;
   let phoneRigTarget=0;
   let phoneRigAmount=0;
+  let currentInteractable=null;
+  let flashlightOn=false;
+  let phoneAutoTriggered=save.progress>=3;
+  let firstScareTriggered=save.progress>=5;
+  let scareStart=0;
+  let elevatorCalledAt=0;
   const moveState={forward:false,back:false,left:false,right:false};
   const lookState={active:false,pointerId:null,lastX:0,lastY:0,yaw:0,pitch:0};
   let sprintEnabled=false;
@@ -1732,6 +1842,19 @@
     noise.stop(now+.2);
     thump.start(now);
     thump.stop(now+.2);
+  }
+
+  function playDoorRattle(){
+    if(!save.sound||!ensureAudio()) return;
+    playNoiseBurst(.12,.032,620);
+    setTimeout(()=>playTone(92,.09,.018,'sine',58),70);
+  }
+
+  function playDistantKnock(){
+    if(!save.sound||!ensureAudio()) return;
+    playTone(72,.10,.028,'sine',48);
+    setTimeout(()=>playTone(68,.11,.025,'sine',44),190);
+    setTimeout(()=>playTone(74,.09,.021,'sine',46),430);
   }
 
   function playGlitchSound(){
@@ -2638,6 +2761,8 @@
     endWall.position.set(0,2,-31.35);
     scene.add(endWall);
 
+    const interactables=[];
+    const doorMeshes=[];
     const doorPositions=[4.3,-2,-8.3,-14.6,-20.9];
     doorPositions.forEach((z,index)=>{
       [-1,1].forEach(side=>{
@@ -2645,6 +2770,16 @@
         door.castShadow=true;
         door.receiveShadow=true;
         door.position.set(side*3.88,1.48,z);
+        const doorNumber=301+index*2+(side<0?1:0);
+        door.userData.interactionType='door';
+        door.userData.interactionLabel='Door '+doorNumber;
+        door.userData.doorNumber=doorNumber;
+        door.userData.side=side;
+        door.userData.targetRotation=0;
+        door.userData.baseZ=z;
+        door.userData.baseX=side*3.88;
+        interactables.push(door);
+        doorMeshes.push(door);
         scene.add(door);
 
         const frameMat=new THREE.MeshStandardMaterial({color:0x111314,roughness:.9});
@@ -2659,7 +2794,7 @@
         knob.position.set(side*3.72,1.45,z+(side>0?-.45:.45));
         scene.add(knob);
 
-        const plaqueTex=makeTextTexture(String(301+index*2+(side<0?1:0)),'#9a9486','#161412');
+        const plaqueTex=makeTextTexture(String(doorNumber),'#9a9486','#161412');
         const plaque=new THREE.Mesh(
           new THREE.PlaneGeometry(.42,.18),
           new THREE.MeshBasicMaterial({map:plaqueTex,transparent:false})
@@ -2688,7 +2823,7 @@
     const signTex=makeTextTexture('FLOOR — H','#d0b08a','#090909');
     const sign=new THREE.Mesh(
       new THREE.PlaneGeometry(2.4,.52),
-      new THREE.MeshBasicMaterial({map:signTex})
+      new THREE.MeshBasicMaterial({map:signTex,transparent:true,opacity:1})
     );
     sign.position.set(0,3.52,-30.73);
     elevatorGroup.add(sign);
@@ -2698,6 +2833,9 @@
       new THREE.MeshStandardMaterial({color:0x232628,metalness:.7,roughness:.3})
     );
     callBox.position.set(2.05,1.45,-30.86);
+    callBox.userData.interactionType='elevator';
+    callBox.userData.interactionLabel='Call elevator';
+    interactables.push(callBox);
     elevatorGroup.add(callBox);
 
     const callLight=new THREE.PointLight(0xb35b42,.6,2.2);
@@ -2854,6 +2992,9 @@
     }
     radiator.position.set(-3.45,.58,1.1);
     radiator.rotation.y=.08;
+    radiator.userData.interactionType='inspect';
+    radiator.userData.interactionLabel='Inspect radiator';
+    interactables.push(radiator);
     scene.add(radiator);
 
     // Crooked abandoned chair silhouette.
@@ -2872,6 +3013,9 @@
     });
     chair.position.set(2.85,0,-10.7);
     chair.rotation.set(.08,-.45,.2);
+    chair.userData.interactionType='inspect';
+    chair.userData.interactionLabel='Inspect chair';
+    interactables.push(chair);
     scene.add(chair);
 
     // Weak emergency lamp: subtle story-language red, not a chase light.
@@ -2916,6 +3060,39 @@
       })
     );
     scene.add(dustPoints);
+
+    // Camera-mounted flashlight. Off by default.
+    const flashlight=new THREE.SpotLight(0xe7f1f3,0,17,Math.PI*.115,.5,1.6);
+    flashlight.position.set(.16,-.10,.05);
+    const flashlightTarget=new THREE.Object3D();
+    flashlightTarget.position.set(0,-.04,-5);
+    camera.add(flashlight);
+    camera.add(flashlightTarget);
+    flashlight.target=flashlightTarget;
+
+    // First scripted Hollow sighting. Kept as a distant silhouette and hidden
+    // until after Noah's message has been read.
+    const hollowFigure=new THREE.Group();
+    const hollowMaterial=new THREE.MeshStandardMaterial({color:0x010101,roughness:1});
+    const hollowHead=new THREE.Mesh(new THREE.SphereGeometry(.22,12,9),hollowMaterial);
+    hollowHead.scale.set(.82,1.12,.78);
+    hollowHead.position.set(0,2.42,0);
+    hollowFigure.add(hollowHead);
+    const hollowTorso=new THREE.Mesh(new THREE.CylinderGeometry(.18,.27,1.52,9),hollowMaterial);
+    hollowTorso.position.set(0,1.55,0);
+    hollowFigure.add(hollowTorso);
+    [-1,1].forEach(side=>{
+      const arm=new THREE.Mesh(new THREE.CylinderGeometry(.055,.07,1.75,7),hollowMaterial);
+      arm.position.set(side*.28,1.42,0);
+      arm.rotation.z=side*.12;
+      hollowFigure.add(arm);
+      const leg=new THREE.Mesh(new THREE.CylinderGeometry(.07,.09,1.48,7),hollowMaterial);
+      leg.position.set(side*.12,.42,0);
+      hollowFigure.add(leg);
+    });
+    hollowFigure.visible=false;
+    hollowFigure.scale.set(1.08,1.18,1.08);
+    scene.add(hollowFigure);
 
     const phoneRig=new THREE.Group();
     phoneRig.visible=true;
@@ -3031,6 +3208,8 @@
 
     threeGame={
       renderer,scene,camera,ceilingLights,phoneRig,dustPoints,emergencyLight,
+      interactables,doorMeshes,callBox,callLight,sign,flashlight,hollowFigure,
+      raycaster:new THREE.Raycaster(),centerRay:new THREE.Vector2(0,0),
       lastTime:performance.now(),
       raf:0,
       baseY:1.65,
@@ -3099,6 +3278,20 @@
       btn.addEventListener('pointerleave',up);
     });
 
+    const interactPrompt=$('interactPrompt');
+    if(interactPrompt) interactPrompt.addEventListener('pointerdown',e=>{
+      e.preventDefault();
+      e.stopPropagation();
+      handleInteraction();
+    });
+
+    const flashlightBtn=$('flashlightBtn');
+    if(flashlightBtn) flashlightBtn.addEventListener('pointerdown',e=>{
+      e.preventDefault();
+      e.stopPropagation();
+      toggleFlashlight();
+    });
+
     const sprintBtn=$('sprintBtn');
     if(sprintBtn){
       sprintBtn.addEventListener('pointerdown',e=>{
@@ -3110,6 +3303,14 @@
 
     const keyMap={KeyW:'forward',ArrowUp:'forward',KeyS:'back',ArrowDown:'back',KeyA:'left',ArrowLeft:'left',KeyD:'right',ArrowRight:'right'};
     window.addEventListener('keydown',e=>{
+      if(e.code==='KeyE'&&!e.repeat&&$('game').classList.contains('active')){
+        handleInteraction();
+        return;
+      }
+      if(e.code==='KeyF'&&!e.repeat&&$('game').classList.contains('active')){
+        toggleFlashlight();
+        return;
+      }
       if(e.code==='ShiftLeft'||e.code==='ShiftRight'){
         if(!e.repeat&&$('game').classList.contains('active')) toggleSprint();
         return;
@@ -3124,6 +3325,177 @@
 
     $('game').classList.add('three-active');
     return true;
+  }
+
+  function findInteractionRoot(object){
+    let node=object;
+    while(node){
+      if(node.userData&&node.userData.interactionType) return node;
+      node=node.parent;
+    }
+    return null;
+  }
+
+  function setInteractionTarget(target){
+    currentInteractable=target||null;
+    const prompt=$('interactPrompt');
+    const reticle=$('gameReticle');
+    if(!prompt||!reticle) return;
+
+    if(target){
+      prompt.textContent='Interact • '+(target.userData.interactionLabel||'Object');
+      prompt.classList.add('visible');
+      reticle.classList.add('target');
+    }else{
+      prompt.classList.remove('visible');
+      reticle.classList.remove('target');
+    }
+  }
+
+  function updateInteractionRaycast(){
+    const g=threeGame;
+    if(!g||!threeRunning||$('phoneOverlay').classList.contains('open')||scareStart){
+      setInteractionTarget(null);
+      return;
+    }
+
+    g.raycaster.setFromCamera(g.centerRay,g.camera);
+    const hits=g.raycaster.intersectObjects(g.interactables,true);
+    let target=null;
+
+    for(const hit of hits){
+      const root=findInteractionRoot(hit.object);
+      if(!root) continue;
+      const maxDistance=root.userData.interactionType==='elevator'?4.8:3.2;
+      if(hit.distance<=maxDistance){
+        target=root;
+        break;
+      }
+    }
+    setInteractionTarget(target);
+  }
+
+  function interactWithDoor(door){
+    const n=door.userData.doorNumber;
+    playDoorRattle();
+
+    if(n===303){
+      if(Math.abs(door.userData.targetRotation)<.05){
+        door.userData.targetRotation=door.userData.side>0?-.42:.42;
+        toast('The door opens only a few inches.');
+      }else{
+        door.userData.targetRotation=0;
+        toast('You pull the door shut.');
+      }
+      return;
+    }
+
+    if(n===302){
+      toast('Something knocks back from the other side.');
+      setTimeout(playDistantKnock,260);
+      return;
+    }
+
+    if(n===304){
+      toast('A whisper stops the moment you touch the handle.');
+      playNoiseBurst(.25,.018,1100);
+      return;
+    }
+
+    if(n===306){
+      toast('Scratching. Then silence.');
+      setTimeout(()=>playNoiseBurst(.18,.025,480),160);
+      return;
+    }
+
+    if(n===307){
+      toast('The hallway feels wrong.');
+      const black=$('scareBlackout');
+      black?.classList.add('on');
+      threeRunning=false;
+      setTimeout(()=>{
+        if(threeGame){
+          threeGame.camera.position.set(0,threeGame.baseY,6.4);
+          lookState.yaw=0;
+          lookState.pitch=0;
+        }
+        black?.classList.remove('on');
+        threeRunning=true;
+        toast('You are back where you started.');
+      },520);
+      return;
+    }
+
+    toast('Locked.');
+  }
+
+  function callElevator(){
+    if(!threeGame) return;
+    ensureAudio();
+    playTone(310,.06,.014,'sine',250);
+    elevatorCalledAt=performance.now();
+    threeGame.callLight.intensity=1.35;
+    toast('The call button lights up.');
+
+    setTimeout(()=>{
+      if(!$('game').classList.contains('active')) return;
+      toast('No movement. Only the display answers.');
+      const objective=$('objectiveText');
+      objective.textContent='Find another way out';
+      objective.classList.remove('updated');
+      void objective.offsetWidth;
+      objective.classList.add('updated');
+    },1500);
+  }
+
+  function handleInteraction(){
+    if(!currentInteractable||!threeRunning) return;
+    ensureAudio();
+    buzz();
+
+    const type=currentInteractable.userData.interactionType;
+    if(type==='door') interactWithDoor(currentInteractable);
+    else if(type==='elevator') callElevator();
+    else if(type==='inspect'){
+      const label=currentInteractable.userData.interactionLabel||'object';
+      if(label.toLowerCase().includes('radiator')){
+        toast('Cold metal. It has not worked in years.');
+      }else{
+        toast('Dust outlines where someone once sat.');
+      }
+    }
+  }
+
+  function toggleFlashlight(){
+    if(!threeGame||!$('game').classList.contains('active')) return;
+    flashlightOn=!flashlightOn;
+    threeGame.flashlight.intensity=flashlightOn?1.55:0;
+    const btn=$('flashlightBtn');
+    if(btn){
+      btn.classList.toggle('active',flashlightOn);
+      btn.setAttribute('aria-pressed',flashlightOn?'true':'false');
+      btn.textContent=flashlightOn?'Flashlight: ON':'Flashlight';
+    }
+    playUIClick('soft');
+  }
+
+  function triggerFirstScare(){
+    if(firstScareTriggered||!threeGame) return;
+    firstScareTriggered=true;
+    save.progress=Math.max(save.progress,5);
+    persist();
+    scareStart=performance.now();
+
+    const forward=new THREE.Vector3(0,0,-1).applyAxisAngle(new THREE.Vector3(0,1,0),lookState.yaw);
+    const pos=threeGame.camera.position.clone().add(forward.multiplyScalar(12.5));
+    pos.x=Math.max(-1.1,Math.min(1.1,pos.x));
+    pos.y=0;
+    pos.z=Math.max(-24.5,Math.min(1.5,pos.z));
+    threeGame.hollowFigure.position.copy(pos);
+    threeGame.hollowFigure.rotation.y=lookState.yaw+Math.PI;
+    threeGame.hollowFigure.visible=false;
+
+    toast('The fluorescent lights begin to fail.');
   }
 
   function animateThreeGame(now){
@@ -3185,6 +3557,62 @@
       g.camera.rotation.x=lookState.pitch+(moving?Math.sin(g.bob*.5)*.004:0);
     }
 
+    // Environmental storytelling: once Elias actually walks into the hall,
+    // the phone buzzes automatically instead of relying on the old story panel.
+    if(threeRunning&&!phoneAutoTriggered&&g.camera.position.z<3.6){
+      phoneAutoTriggered=true;
+      save.progress=Math.max(save.progress,3);
+      persist();
+      setTimeout(()=>{
+        if($('game').classList.contains('active')&&!$('phoneOverlay').classList.contains('open')) openPhone();
+      },260);
+    }
+
+    // Smooth door movement.
+    if(g.doorMeshes){
+      g.doorMeshes.forEach(door=>{
+        const targetRot=door.userData.targetRotation||0;
+        door.rotation.y+=(targetRot-door.rotation.y)*(1-Math.pow(.0008,dt));
+      });
+    }
+
+    // Elevator display flicker after pressing the call button.
+    if(elevatorCalledAt&&g.sign){
+      const elapsed=now-elevatorCalledAt;
+      if(elapsed<2400){
+        g.sign.material.opacity=.45+.55*Math.abs(Math.sin(now*.019));
+        g.callLight.intensity=.85+.55*Math.abs(Math.sin(now*.012));
+      }else{
+        g.sign.material.opacity=1;
+        g.callLight.intensity=.6;
+        elevatorCalledAt=0;
+      }
+    }
+
+    // First sighting: light flicker -> distant silhouette -> blackout -> gone.
+    if(scareStart){
+      const elapsed=now-scareStart;
+      const black=$('scareBlackout');
+
+      if(elapsed<420){
+        g.hollowFigure.visible=false;
+      }else if(elapsed<1350){
+        g.hollowFigure.visible=true;
+      }else if(elapsed<1780){
+        black?.classList.add('on');
+        g.hollowFigure.visible=false;
+      }else if(elapsed<2300){
+        black?.classList.remove('on');
+      }else{
+        black?.classList.remove('on');
+        g.hollowFigure.visible=false;
+        scareStart=0;
+        toast('It is gone.');
+      }
+    }
+
+    updateInteractionRaycast();
+
     const target=phoneRigTarget;
     const rate=1-Math.pow(.001,dt);
     phoneRigAmount+=(target-phoneRigAmount)*rate;
@@ -3217,7 +3645,14 @@
     g.ceilingLights.forEach((entry,index)=>{
       const base=index===1?.62:.9;
       const rare=(Math.floor(now/1600)%7===3&&index===2)?(.48+.1*Math.sin(now*.08)):1;
-      entry.light.intensity=base*(.94+.06*flicker)*rare;
+      let scareMultiplier=1;
+      if(scareStart){
+        const se=now-scareStart;
+        if(se<1350) scareMultiplier=(Math.floor(se/90)%2===0)?.18:1;
+        else if(se<1780) scareMultiplier=.01;
+        else if(se<2300) scareMultiplier=.45;
+      }
+      entry.light.intensity=base*(.94+.06*flicker)*rare*scareMultiplier;
       entry.panel.material.emissiveIntensity=(index===1?.52:.75)*rare;
     });
 
@@ -3227,6 +3662,8 @@
 
   function startThreeGame(){
     if(!initThreeGame()) return;
+    $('game').classList.add('gameplay-live');
+    $('storybox')?.setAttribute('aria-hidden','true');
     threeRunning=true;
     threeGame.lastTime=performance.now();
     if(!threeGame.raf) threeGame.raf=requestAnimationFrame(animateThreeGame);
@@ -3235,6 +3672,7 @@
 
   function pauseThreeGame(){
     threeRunning=false;
+    setInteractionTarget(null);
     setSprint(false);
     Object.keys(moveState).forEach(k=>moveState[k]=false);
   }
@@ -3446,6 +3884,10 @@
     playUIClick('new');
 
     save.progress=1;
+    phoneAutoTriggered=false;
+    firstScareTriggered=false;
+    scareStart=0;
+    flashlightOn=false;
     persist();
     stopMenuAmbience(.4);
     stopMenuMusic(.55);
@@ -3525,6 +3967,10 @@
     playUIClick('soft');
     save.progress=0;
     save.lives=3;
+    phoneAutoTriggered=false;
+    firstScareTriggered=false;
+    scareStart=0;
+    flashlightOn=false;
     energy=100;
     setSprint(false);
     updateEnergyHud();
@@ -3583,6 +4029,7 @@
       toast('Objective updated — Find an exit');
       save.progress=Math.max(save.progress,4);
       persist();
+      setTimeout(triggerFirstScare,520);
     }
   }
 
