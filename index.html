@@ -1,0 +1,125 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no" />
+  <meta name="theme-color" content="#090909" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <link rel="manifest" href="manifest.webmanifest" />
+  <link rel="icon" href="icon.svg" type="image/svg+xml" />
+  <title>The Hollow</title>
+  <style>
+    :root{--bg:#070707;--panel:#111;--text:#f1eee9;--muted:#aaa39b;--line:#2a2927;--accent:#b8b0a6}
+    *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+    html,body{margin:0;min-height:100%;background:#050505;color:var(--text);font-family:Georgia,'Times New Roman',serif;overflow:hidden}
+    body{min-height:100dvh}
+    button{font:inherit;color:inherit}
+    .app{position:relative;min-height:100dvh;background:radial-gradient(circle at 50% 24%,rgba(255,255,255,.08),transparent 28%),linear-gradient(180deg,#0d0d0d 0%,#050505 60%,#000 100%);overflow:hidden}
+    .fog,.grain,.vignette{position:absolute;inset:0;pointer-events:none}
+    .fog:before,.fog:after{content:"";position:absolute;width:120%;height:36%;left:-10%;filter:blur(24px);opacity:.13;background:linear-gradient(90deg,transparent,#fff,transparent);animation:drift 14s linear infinite}
+    .fog:before{top:25%}.fog:after{top:60%;animation-duration:20s;animation-direction:reverse;opacity:.07}
+    .grain{opacity:.12;background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 180 180' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='.32'/%3E%3C/svg%3E")}
+    .vignette{box-shadow:inset 0 0 130px 55px #000}
+    @keyframes drift{from{transform:translateX(-8%)}to{transform:translateX(8%)}}
+    .screen{position:absolute;inset:0;display:none;z-index:2;padding:max(24px,env(safe-area-inset-top)) 22px max(24px,env(safe-area-inset-bottom));}
+    .screen.active{display:flex}
+    #home{align-items:center;justify-content:center;text-align:center}
+    .home-wrap{width:min(88vw,420px);transform:translateY(-2vh)}
+    .eyebrow{font-family:system-ui,sans-serif;letter-spacing:.45em;text-transform:uppercase;font-size:10px;color:#817b74;margin-bottom:14px}
+    h1{font-weight:400;margin:0;font-size:clamp(46px,14vw,76px);letter-spacing:.08em;text-transform:uppercase;text-shadow:0 2px 26px #000}
+    .subtitle{margin:8px 0 48px;color:#8d8780;font-size:14px;font-style:italic;letter-spacing:.08em}
+    .menu{display:grid;gap:13px}
+    .menu button,.back,.setting-row{background:rgba(15,15,15,.72);border:1px solid var(--line);min-height:54px;border-radius:4px;box-shadow:0 8px 28px rgba(0,0,0,.32)}
+    .menu button{letter-spacing:.22em;text-transform:uppercase;font-size:12px;transition:.15s;padding:0 18px}
+    .menu button:active{transform:scale(.985);background:#1a1a1a}
+    .menu button.primary{border-color:#4d4944;background:rgba(31,29,27,.82)}
+    .menu button:disabled{opacity:.35}
+    .version{position:absolute;bottom:max(10px,env(safe-area-inset-bottom));left:0;right:0;font:10px system-ui,sans-serif;color:#4d4944;letter-spacing:.12em}
+    .panel-screen{flex-direction:column;background:linear-gradient(180deg,rgba(8,8,8,.97),rgba(3,3,3,.99))}
+    .topbar{display:flex;align-items:center;gap:14px;margin-bottom:28px}
+    .back{width:46px;min-height:46px;font-size:20px}
+    .topbar h2{font-weight:400;letter-spacing:.14em;text-transform:uppercase;font-size:18px;margin:0}
+    .settings{display:grid;gap:12px}
+    .setting-row{padding:0 16px;display:flex;align-items:center;justify-content:space-between;font-family:system-ui,sans-serif;font-size:14px}
+    .switch{width:50px;height:28px;border-radius:999px;background:#262626;position:relative;border:1px solid #383838}
+    .switch:after{content:"";position:absolute;width:20px;height:20px;border-radius:50%;background:#7a746d;top:3px;left:4px;transition:.2s}
+    .switch.on{background:#34302d}.switch.on:after{left:24px;background:#d6cec4}
+    #game{padding:0;flex-direction:column;justify-content:flex-end;background:linear-gradient(#060606,#0b0b0b 55%,#050505)}
+    .hall{position:absolute;inset:0;background:linear-gradient(90deg,rgba(0,0,0,.9),transparent 24%,transparent 76%,rgba(0,0,0,.9)),linear-gradient(180deg,#090909 0 22%,#171411 22% 70%,#080706 70%)}
+    .door{position:absolute;left:50%;top:26%;width:36%;height:45%;transform:translateX(-50%);border:2px solid #292521;background:linear-gradient(90deg,#0b0a09,#161310 50%,#0b0a09);box-shadow:0 0 70px #000,inset 0 0 30px #000}
+    .door:after{content:"";position:absolute;width:7px;height:7px;border-radius:50%;background:#827669;right:14%;top:50%;box-shadow:0 0 6px rgba(255,220,175,.2)}
+    .chapter{position:absolute;top:max(26px,env(safe-area-inset-top));left:0;right:0;text-align:center;text-transform:uppercase;letter-spacing:.34em;font:10px system-ui,sans-serif;color:#77716a}
+    .storybox{position:relative;z-index:3;margin:0 16px max(18px,env(safe-area-inset-bottom));padding:18px;background:rgba(7,7,7,.9);border:1px solid #252321;box-shadow:0 15px 45px #000}
+    .storybox p{font-size:16px;line-height:1.55;margin:0 0 16px;color:#d7d1ca}
+    .storybox button{width:100%;min-height:50px;background:#181614;border:1px solid #3c3732;text-transform:uppercase;letter-spacing:.18em;font-size:11px}
+    .game-actions{position:absolute;top:max(20px,env(safe-area-inset-top));right:16px;z-index:4}
+    .game-actions button{width:42px;height:42px;border:1px solid #2a2724;background:rgba(7,7,7,.7);color:#aaa;border-radius:50%}
+    .toast{position:absolute;z-index:8;left:50%;bottom:26px;transform:translate(-50%,20px);padding:10px 14px;background:#161616;border:1px solid #2b2b2b;border-radius:3px;font:12px system-ui,sans-serif;color:#ccc;opacity:0;transition:.2s;pointer-events:none;white-space:nowrap}.toast.show{opacity:1;transform:translate(-50%,0)}
+  </style>
+</head>
+<body>
+<div class="app">
+  <div class="fog"></div><div class="grain"></div><div class="vignette"></div>
+  <section id="home" class="screen active">
+    <div class="home-wrap">
+      <div class="eyebrow">A short horror experience</div>
+      <h1>The Hollow</h1>
+      <div class="subtitle">Some doors remember who opened them.</div>
+      <div class="menu">
+        <button class="primary" id="startBtn">Start Game</button>
+        <button id="continueBtn" disabled>Continue</button>
+        <button id="settingsBtn">Settings</button>
+      </div>
+    </div>
+    <div class="version">OFFLINE STARTER • v0.1</div>
+  </section>
+  <section id="settings" class="screen panel-screen">
+    <div class="topbar"><button class="back" id="backBtn">‹</button><h2>Settings</h2></div>
+    <div class="settings">
+      <div class="setting-row"><span>Ambient sound</span><div id="soundSwitch" class="switch on" role="switch" aria-checked="true"></div></div>
+      <div class="setting-row"><span>Vibration</span><div id="vibeSwitch" class="switch on" role="switch" aria-checked="true"></div></div>
+      <div class="setting-row"><span>Reset progress</span><button id="resetBtn" style="background:none;border:0;color:#b7aea5">RESET</button></div>
+    </div>
+  </section>
+  <section id="game" class="screen">
+    <div class="hall"><div class="door"></div></div>
+    <div class="chapter">Chapter I • The Door</div>
+    <div class="game-actions"><button id="homeBtn">⌂</button></div>
+    <div class="storybox">
+      <p id="storyText">You wake to the sound of three knocks. The hallway outside your room is empty, but the door at the far end is open now.</p>
+      <button id="nextBtn">Approach the door</button>
+    </div>
+  </section>
+  <div id="toast" class="toast">Saved</div>
+</div>
+<script>
+(() => {
+  const screens=[...document.querySelectorAll('.screen')];
+  const $=id=>document.getElementById(id);
+  const save=JSON.parse(localStorage.getItem('hollowSave')||'{"progress":0,"sound":true,"vibe":true}');
+  const show=id=>{screens.forEach(s=>s.classList.remove('active'));$(id).classList.add('active')};
+  const persist=()=>{localStorage.setItem('hollowSave',JSON.stringify(save));$('continueBtn').disabled=!save.progress};
+  const buzz=()=>{if(save.vibe&&navigator.vibrate)navigator.vibrate(25)};
+  const toast=t=>{const e=$('toast');e.textContent=t;e.classList.add('show');setTimeout(()=>e.classList.remove('show'),1200)};
+  const sync=()=>{$('soundSwitch').classList.toggle('on',save.sound);$('vibeSwitch').classList.toggle('on',save.vibe);$('soundSwitch').setAttribute('aria-checked',save.sound);$('vibeSwitch').setAttribute('aria-checked',save.vibe);persist()};
+  $('startBtn').onclick=()=>{buzz();save.progress=1;persist();show('game');toast('Progress saved')};
+  $('continueBtn').onclick=()=>{buzz();show('game')};
+  $('settingsBtn').onclick=()=>{buzz();show('settings')};
+  $('backBtn').onclick=()=>{buzz();show('home')};
+  $('homeBtn').onclick=()=>{buzz();show('home')};
+  $('soundSwitch').onclick=()=>{save.sound=!save.sound;sync();buzz()};
+  $('vibeSwitch').onclick=()=>{save.vibe=!save.vibe;sync();buzz()};
+  $('resetBtn').onclick=()=>{save.progress=0;persist();toast('Progress reset')};
+  const scenes=[
+    ['You wake to the sound of three knocks. The hallway outside your room is empty, but the door at the far end is open now.','Approach the door'],
+    ['The floorboards bend under your weight. Something moves behind the door, then goes quiet.','Reach for the handle'],
+    ['The handle is cold. A whisper comes from the other side: “You took long enough.”','End demo']
+  ]; let i=0;
+  $('nextBtn').onclick=()=>{buzz();i++; if(i>=scenes.length){i=0;save.progress=1;persist();show('home');toast('Chapter demo complete');return;} $('storyText').textContent=scenes[i][0];$('nextBtn').textContent=scenes[i][1];save.progress=i+1;persist()};
+  sync();
+  if('serviceWorker' in navigator){window.addEventListener('load',()=>navigator.serviceWorker.register('./sw.js').catch(()=>{}));}
+})();
+</script>
+</body>
+</html>
