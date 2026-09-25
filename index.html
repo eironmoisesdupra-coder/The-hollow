@@ -174,7 +174,14 @@
       -webkit-text-fill-color:transparent;
       color:#cac9c4;
       filter:url(#hollowDistress) contrast(1.16);
-      text-shadow:0 3px 1px rgba(0,0,0,.9),0 9px 20px rgba(0,0,0,.95)
+      text-shadow:
+        0 3px 1px rgba(0,0,0,.9),
+        0 9px 20px rgba(0,0,0,.95),
+        1px 0 rgba(120,0,0,.18),
+        -1px 0 rgba(120,160,170,.14);
+      animation:
+        hollowTitleGlitch 2.4s steps(1,end) infinite,
+        hollowTitlePulse 4.8s ease-in-out infinite
     }
     .menu-title:before{
       content:attr(data-text);
@@ -189,7 +196,8 @@
         repeating-linear-gradient(176deg,transparent 0 8px,rgba(0,0,0,.34) 9px 11px,transparent 12px 17px),
         repeating-linear-gradient(91deg,transparent 0 31px,rgba(0,0,0,.22) 32px 34px,transparent 35px 52px);
       mix-blend-mode:multiply;
-      pointer-events:none
+      pointer-events:none;
+      animation:hollowTitleSliceA 1.9s steps(1,end) infinite
     }
     .menu-title:after{
       content:attr(data-text);
@@ -201,7 +209,128 @@
       -webkit-text-fill-color:rgba(72,5,7,.40);
       clip-path:polygon(0 13%,100% 7%,100% 24%,0 31%,0 55%,100% 48%,100% 69%,0 76%,0 92%,100% 86%,100% 100%,0 100%);
       opacity:.48;
-      pointer-events:none
+      pointer-events:none;
+      animation:hollowTitleSliceB 2.2s steps(1,end) infinite
+    }
+
+    @keyframes hollowTitleGlitch{
+      0%,8%,12%,18%,26%,33%,41%,49%,57%,64%,72%,79%,87%,94%,100%{
+        transform:translate(-50%,-50%);
+      }
+      9%{transform:translate(calc(-50% - 2px),calc(-50% + 1px))}
+      10%{transform:translate(calc(-50% + 3px),calc(-50% - 1px))}
+      11%{transform:translate(calc(-50% - 1px),-50%)}
+      27%{transform:translate(calc(-50% + 2px),-50%)}
+      28%{transform:translate(calc(-50% - 3px),calc(-50% + 1px))}
+      29%{transform:translate(-50%,calc(-50% - 1px))}
+      50%{transform:translate(calc(-50% - 2px),-50%)}
+      51%{transform:translate(calc(-50% + 2px),calc(-50% + 1px))}
+      80%{transform:translate(calc(-50% + 1px),calc(-50% - 1px))}
+      81%{transform:translate(calc(-50% - 2px),-50%)}
+      95%{transform:translate(calc(-50% + 2px),-50%)}
+      96%{transform:translate(calc(-50% - 1px),calc(-50% + 1px))}
+    }
+    @keyframes hollowTitlePulse{
+      0%,100%{opacity:1}
+      48%{opacity:.97}
+      50%{opacity:.9}
+      52%{opacity:.98}
+    }
+    @keyframes hollowTitleSliceA{
+      0%,13%,17%,31%,35%,49%,53%,67%,71%,85%,89%,100%{
+        transform:translateX(0);
+        clip-path:inset(0 0 0 0)
+      }
+      14%{
+        transform:translateX(-5px);
+        clip-path:inset(8% 0 68% 0)
+      }
+      15%{
+        transform:translateX(6px);
+        clip-path:inset(42% 0 36% 0)
+      }
+      16%{
+        transform:translateX(-2px);
+        clip-path:inset(72% 0 8% 0)
+      }
+      32%{
+        transform:translateX(4px);
+        clip-path:inset(22% 0 55% 0)
+      }
+      33%{
+        transform:translateX(-6px);
+        clip-path:inset(58% 0 20% 0)
+      }
+      50%{
+        transform:translateX(-4px);
+        clip-path:inset(15% 0 62% 0)
+      }
+      51%{
+        transform:translateX(5px);
+        clip-path:inset(64% 0 12% 0)
+      }
+      68%{
+        transform:translateX(4px);
+        clip-path:inset(36% 0 38% 0)
+      }
+      69%{
+        transform:translateX(-5px);
+        clip-path:inset(70% 0 10% 0)
+      }
+      86%{
+        transform:translateX(-4px);
+        clip-path:inset(18% 0 60% 0)
+      }
+      87%{
+        transform:translateX(6px);
+        clip-path:inset(52% 0 24% 0)
+      }
+    }
+    @keyframes hollowTitleSliceB{
+      0%,11%,15%,29%,33%,47%,51%,65%,69%,83%,87%,100%{
+        transform:translate(2px,1px);
+        opacity:.48
+      }
+      12%{
+        transform:translate(8px,0);
+        opacity:.72
+      }
+      13%{
+        transform:translate(-7px,2px);
+        opacity:.6
+      }
+      30%{
+        transform:translate(-6px,1px);
+        opacity:.68
+      }
+      31%{
+        transform:translate(7px,-1px);
+        opacity:.58
+      }
+      48%{
+        transform:translate(6px,2px);
+        opacity:.7
+      }
+      49%{
+        transform:translate(-8px,0);
+        opacity:.56
+      }
+      66%{
+        transform:translate(-5px,2px);
+        opacity:.68
+      }
+      67%{
+        transform:translate(8px,-1px);
+        opacity:.58
+      }
+      84%{
+        transform:translate(7px,1px);
+        opacity:.72
+      }
+      85%{
+        transform:translate(-7px,0);
+        opacity:.56
+      }
     }
 
     .menu-reference{
@@ -566,7 +695,8 @@
       .glitch-progress{height:16px}
     }
     @media (prefers-reduced-motion:reduce){
-      .loading-fog,.loading-scanlines:after,.glitch-title,.glitch-title:before,.glitch-title:after,.glitch-progress-fill,.glitch-dust{
+      .loading-fog,.loading-scanlines:after,.glitch-title,.glitch-title:before,.glitch-title:after,.glitch-progress-fill,.glitch-dust,
+      .menu-title,.menu-title:before,.menu-title:after{
         animation:none!important
       }
     }
