@@ -351,6 +351,18 @@
       transition:opacity .09s linear
     }
     .scare-blackout.on{opacity:1}
+    #game.door-cutscene .move-pad,
+    #game.door-cutscene .sprint-btn,
+    #game.door-cutscene .flashlight-btn,
+    #game.door-cutscene .energy-hud,
+    #game.door-cutscene .survival-hud,
+    #game.door-cutscene .game-actions,
+    #game.door-cutscene .interaction-prompt,
+    #game.door-cutscene .game-reticle,
+    #game.door-cutscene .look-hint{
+      opacity:0!important;
+      pointer-events:none!important
+    }
     .survival-hud{
       position:absolute;
       z-index:9;
@@ -1656,6 +1668,7 @@
   let firstScareTriggered=save.progress>=5;
   let scareStart=0;
   let elevatorCalledAt=0;
+  let door307Cutscene=null;
   const moveState={forward:false,back:false,left:false,right:false};
   const lookState={active:false,pointerId:null,lastX:0,lastY:0,yaw:0,pitch:0};
   let sprintEnabled=false;
@@ -2771,6 +2784,32 @@
         door.receiveShadow=true;
         door.position.set(side*3.88,1.48,z);
         const doorNumber=301+index*2+(side<0?1:0);
+
+        const doorwayVoid=new THREE.Mesh(
+          new THREE.PlaneGeometry(1.52,2.76),
+          new THREE.MeshBasicMaterial({
+            color:0x000000,
+            side:THREE.DoubleSide
+          })
+        );
+        doorwayVoid.position.set(side*3.865,1.48,z);
+        doorwayVoid.rotation.y=side>0?-Math.PI/2:Math.PI/2;
+        scene.add(doorwayVoid);
+
+        // Slight inner shadow gives the opening depth instead of showing the
+        // continuous concrete wall behind the moving door.
+        const doorwayDepth=new THREE.Mesh(
+          new THREE.BoxGeometry(.34,2.70,1.46),
+          new THREE.MeshStandardMaterial({
+            color:0x020303,
+            roughness:1,
+            metalness:0
+          })
+        );
+        doorwayDepth.position.set(side*4.02,1.48,z);
+        scene.add(doorwayDepth);
+
+        door.userData.doorwayVoid=doorwayVoid;
         door.userData.interactionType='door';
         door.userData.interactionLabel='Door '+doorNumber;
         door.userData.doorNumber=doorNumber;
@@ -3094,6 +3133,49 @@
     hollowFigure.scale.set(1.08,1.18,1.08);
     scene.add(hollowFigure);
 
+    // Door 307 cutscene mouth: an abstract black oval with pale teeth.
+    // It engulfs the camera as a supernatural transition, without gore.
+    const mouthGroup=new THREE.Group();
+    const mouthInner=new THREE.Mesh(
+      new THREE.CircleGeometry(.62,32),
+      new THREE.MeshBasicMaterial({color:0x000000,side:THREE.DoubleSide})
+    );
+    mouthInner.scale.set(1.18,.58,1);
+    mouthGroup.add(mouthInner);
+
+    const mouthRim=new THREE.Mesh(
+      new THREE.TorusGeometry(.62,.10,10,36),
+      new THREE.MeshStandardMaterial({
+        color:0x111010,
+        roughness:.88,
+        metalness:0
+      })
+    );
+    mouthRim.scale.set(1.18,.58,1);
+    mouthGroup.add(mouthRim);
+
+    const toothMat=new THREE.MeshStandardMaterial({
+      color:0xc7c5b8,
+      roughness:.72,
+      metalness:0
+    });
+    for(let row=0;row<2;row++){
+      for(let t=0;t<7;t++){
+        const tooth=new THREE.Mesh(
+          new THREE.ConeGeometry(.07,.18,6),
+          toothMat
+        );
+        const x=(t-3)*.16;
+        const y=row===0?.20:-.20;
+        tooth.position.set(x,y,.035);
+        tooth.rotation.z=row===0?Math.PI:0;
+        mouthGroup.add(tooth);
+      }
+    }
+    mouthGroup.visible=false;
+    mouthGroup.scale.set(.42,.42,.42);
+    scene.add(mouthGroup);
+
     const phoneRig=new THREE.Group();
     phoneRig.visible=true;
     camera.add(phoneRig);
@@ -3208,7 +3290,7 @@
 
     threeGame={
       renderer,scene,camera,ceilingLights,phoneRig,dustPoints,emergencyLight,
-      interactables,doorMeshes,callBox,callLight,sign,flashlight,hollowFigure,
+      interactables,doorMeshes,callBox,callLight,sign,flashlight,hollowFigure,mouthGroup,
       raycaster:new THREE.Raycaster(),centerRay:new THREE.Vector2(0,0),
       lastTime:performance.now(),
       raf:0,
@@ -3354,7 +3436,7 @@
 
   function updateInteractionRaycast(){
     const g=threeGame;
-    if(!g||!threeRunning||$('phoneOverlay').classList.contains('open')||scareStart){
+    if(!g||!threeRunning||$('phoneOverlay').classList.contains('open')||scareStart||door307Cutscene){
       setInteractionTarget(null);
       return;
     }
@@ -3373,6 +3455,56 @@
       }
     }
     setInteractionTarget(target);
+  }
+
+  function startDoor307Cutscene(door){
+    if(!threeGame||door307Cutscene) return;
+
+    threeRunning=false;
+    setSprint(false);
+    setInteractionTarget(null);
+    $('game').classList.add('door-cutscene');
+
+    // Open Door 307 first.
+    door.userData.targetRotation=door.userData.side>0?-1.08:1.08;
+    playDoorRattle();
+
+    const camera=threeGame.camera;
+    const startPos=camera.position.clone();
+    const startYaw=lookState.yaw;
+    const startPitch=lookState.pitch;
+
+    const targetPos=new THREE.Vector3(
+      door.userData.side>0?2.28:-2.28,
+      1.66,
+      door.userData.baseZ
+    );
+    const targetYaw=door.userData.side>0?-Math.PI/2:Math.PI/2;
+
+    // Mouth begins just inside the opened doorway and then advances.
+    const mouthStart=new THREE.Vector3(
+      door.userData.side>0?3.57:-3.57,
+      1.66,
+      door.userData.baseZ
+    );
+
+    door307Cutscene={
+      door,
+      start:performance.now(),
+      startPos,
+      startYaw,
+      startPitch,
+      targetPos,
+      targetYaw,
+      mouthStart,
+      teleported:false
+    };
+
+    if(threeGame.mouthGroup){
+      threeGame.mouthGroup.visible=false;
+      threeGame.mouthGroup.position.copy(mouthStart);
+      threeGame.mouthGroup.scale.set(.42,.42,.42);
+    }
   }
 
   function interactWithDoor(door){
@@ -3409,20 +3541,7 @@
     }
 
     if(n===307){
-      toast('The hallway feels wrong.');
-      const black=$('scareBlackout');
-      black?.classList.add('on');
-      threeRunning=false;
-      setTimeout(()=>{
-        if(threeGame){
-          threeGame.camera.position.set(0,threeGame.baseY,6.4);
-          lookState.yaw=0;
-          lookState.pitch=0;
-        }
-        black?.classList.remove('on');
-        threeRunning=true;
-        toast('You are back where you started.');
-      },520);
+      startDoor307Cutscene(door);
       return;
     }
 
@@ -3505,6 +3624,73 @@
     const dt=Math.min(.04,Math.max(.001,(now-g.lastTime)/1000));
     g.lastTime=now;
 
+    if(door307Cutscene){
+      const cs=door307Cutscene;
+      const elapsed=now-cs.start;
+      const black=$('scareBlackout');
+
+      // Phase 1: smoothly pull the camera into a close-up of Door 307.
+      if(elapsed<1050){
+        const p=Math.min(1,elapsed/1050);
+        const eased=p*p*(3-2*p);
+        g.camera.position.lerpVectors(cs.startPos,cs.targetPos,eased);
+        lookState.yaw=cs.startYaw+(cs.targetYaw-cs.startYaw)*eased;
+        lookState.pitch=cs.startPitch*(1-eased);
+        g.camera.rotation.order='YXZ';
+        g.camera.rotation.y=lookState.yaw;
+        g.camera.rotation.x=lookState.pitch;
+      }else{
+        g.camera.position.copy(cs.targetPos);
+        lookState.yaw=cs.targetYaw;
+        lookState.pitch=0;
+        g.camera.rotation.order='YXZ';
+        g.camera.rotation.y=lookState.yaw;
+        g.camera.rotation.x=0;
+      }
+
+      // Phase 2: pause on the open doorway, then reveal the mouth.
+      if(elapsed>=950&&elapsed<1500){
+        g.mouthGroup.visible=false;
+      }else if(elapsed>=1500&&elapsed<3550){
+        g.mouthGroup.visible=true;
+
+        const raw=Math.min(1,(elapsed-1500)/2050);
+        // Cubic acceleration: starts very slowly, then rushes toward the camera.
+        const rush=raw*raw*raw;
+
+        const cameraForward=new THREE.Vector3(0,0,-1).applyQuaternion(g.camera.quaternion);
+        const mouthEnd=g.camera.position.clone().add(cameraForward.multiplyScalar(.16));
+
+        g.mouthGroup.position.lerpVectors(cs.mouthStart,mouthEnd,rush);
+        g.mouthGroup.lookAt(g.camera.position);
+
+        const scale=.42+rush*4.8;
+        g.mouthGroup.scale.set(scale,scale,scale);
+
+        if(save.sound&&raw>.58&&Math.floor(elapsed/180)%2===0){
+          playNoiseBurst(.035,.010+raw*.018,320+raw*360);
+        }
+      }else if(elapsed>=3550&&elapsed<4050){
+        // The shadow fills the player's view.
+        black?.classList.add('on');
+        g.mouthGroup.visible=false;
+      }else if(elapsed>=4050&&!cs.teleported){
+        cs.teleported=true;
+
+        g.camera.position.set(0,g.baseY,6.4);
+        lookState.yaw=0;
+        lookState.pitch=0;
+        g.camera.rotation.set(0,0,0);
+        cs.door.userData.targetRotation=0;
+
+        black?.classList.remove('on');
+        $('game').classList.remove('door-cutscene');
+        door307Cutscene=null;
+        threeRunning=true;
+        setInteractionTarget(null);
+      }
+    }
+
     if(threeRunning){
       const moving=moveState.forward||moveState.back||moveState.left||moveState.right;
       const sprintingNow=moving&&sprintEnabled&&energy>0;
@@ -3559,7 +3745,7 @@
 
     // Environmental storytelling: once Elias actually walks into the hall,
     // the phone buzzes automatically instead of relying on the old story panel.
-    if(threeRunning&&!phoneAutoTriggered&&g.camera.position.z<3.6){
+    if(threeRunning&&!door307Cutscene&&!phoneAutoTriggered&&g.camera.position.z<3.6){
       phoneAutoTriggered=true;
       save.progress=Math.max(save.progress,3);
       persist();
@@ -3590,7 +3776,7 @@
     }
 
     // First sighting: light flicker -> distant silhouette -> blackout -> gone.
-    if(scareStart){
+    if(scareStart&&!door307Cutscene){
       const elapsed=now-scareStart;
       const black=$('scareBlackout');
 
@@ -3887,6 +4073,7 @@
     phoneAutoTriggered=false;
     firstScareTriggered=false;
     scareStart=0;
+    door307Cutscene=null;
     flashlightOn=false;
     persist();
     stopMenuAmbience(.4);
@@ -3970,6 +4157,7 @@
     phoneAutoTriggered=false;
     firstScareTriggered=false;
     scareStart=0;
+    door307Cutscene=null;
     flashlightOn=false;
     energy=100;
     setSprint(false);
