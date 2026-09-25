@@ -252,6 +252,111 @@
       box-shadow:inset 0 0 clamp(40px,8vw,120px) rgba(0,0,0,.38)
     }
     .prologue-scene{transition:opacity .45s ease}
+    .survival-hud{
+      position:absolute;
+      z-index:9;
+      top:max(16px,env(safe-area-inset-top));
+      left:max(16px,env(safe-area-inset-left));
+      display:flex;
+      flex-direction:column;
+      gap:5px;
+      pointer-events:none;
+      text-shadow:0 2px 8px #000
+    }
+    .lives-label{
+      font:600 8px system-ui,sans-serif;
+      letter-spacing:.28em;
+      text-transform:uppercase;
+      color:rgba(205,211,212,.52)
+    }
+    .lives-row{
+      display:flex;
+      gap:7px;
+      align-items:center
+    }
+    .life-heart{
+      color:#a51d25;
+      font:20px Georgia,'Times New Roman',serif;
+      line-height:1;
+      filter:drop-shadow(0 0 6px rgba(150,15,25,.28));
+      opacity:.98
+    }
+    .life-heart.lost{
+      color:#2b1719;
+      opacity:.45;
+      filter:none
+    }
+    .chapter{
+      top:max(72px,calc(env(safe-area-inset-top) + 56px))!important
+    }
+    .objective{
+      top:max(104px,calc(env(safe-area-inset-top) + 88px))!important
+    }
+    .energy-hud{
+      position:absolute;
+      z-index:9;
+      right:max(16px,env(safe-area-inset-right));
+      bottom:max(82px,calc(env(safe-area-inset-bottom) + 70px));
+      width:min(190px,42vw);
+      pointer-events:none
+    }
+    .energy-meta{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      margin-bottom:5px;
+      color:rgba(214,219,220,.58);
+      font:600 8px system-ui,sans-serif;
+      letter-spacing:.2em;
+      text-transform:uppercase;
+      text-shadow:0 2px 7px #000
+    }
+    .energy-shell{
+      height:8px;
+      overflow:hidden;
+      border:1px solid rgba(184,197,200,.14);
+      background:rgba(3,6,7,.66);
+      box-shadow:0 3px 12px rgba(0,0,0,.45)
+    }
+    .energy-fill{
+      height:100%;
+      width:100%;
+      transform-origin:left center;
+      background:linear-gradient(90deg,#516b70,#9cafb2);
+      box-shadow:0 0 9px rgba(130,170,180,.2);
+      transition:width .12s linear,background .2s ease
+    }
+    .energy-fill.low{
+      background:linear-gradient(90deg,#672127,#a8464b)
+    }
+    .sprint-btn{
+      position:absolute;
+      z-index:10;
+      right:max(16px,env(safe-area-inset-right));
+      bottom:max(18px,env(safe-area-inset-bottom));
+      min-width:102px;
+      height:48px;
+      padding:0 15px;
+      border-radius:4px;
+      border:1px solid rgba(183,195,198,.16);
+      background:rgba(4,7,8,.68);
+      color:rgba(216,222,223,.72);
+      font:600 9px system-ui,sans-serif;
+      letter-spacing:.2em;
+      text-transform:uppercase;
+      backdrop-filter:blur(4px);
+      box-shadow:0 6px 20px rgba(0,0,0,.38);
+      touch-action:manipulation
+    }
+    .sprint-btn.active{
+      border-color:rgba(153,58,64,.45);
+      color:#ddd;
+      background:rgba(69,16,21,.54);
+      text-shadow:0 0 8px rgba(180,30,38,.28)
+    }
+    .sprint-btn:disabled{
+      opacity:.38
+    }
     .move-pad{
       position:absolute;
       z-index:8;
@@ -587,8 +692,11 @@
     }
     @media (orientation:landscape) and (max-height:600px){
       .prologue-scene{background-position:center 47%}
-      .chapter{top:max(14px,env(safe-area-inset-top))}
-      .objective{top:max(43px,calc(env(safe-area-inset-top) + 30px))}
+      .chapter{top:max(68px,calc(env(safe-area-inset-top) + 52px))!important}
+      .objective{top:max(94px,calc(env(safe-area-inset-top) + 78px))!important}
+      .survival-hud{top:max(10px,env(safe-area-inset-top))}
+      .energy-hud{width:min(160px,28vw);bottom:max(70px,calc(env(safe-area-inset-bottom) + 58px))}
+      .sprint-btn{height:42px;min-width:92px}
       .storybox{width:min(64vw,680px);padding:10px 14px;margin-left:auto;margin-right:max(16px,8vw)}
       .storybox p{font-size:12px;margin-bottom:9px}
       .storybox button{min-height:38px}
@@ -1439,6 +1547,14 @@
   <section id="game" class="screen">
     <div class="prologue-scene"></div>
     <canvas id="game3d" class="game3d" aria-label="3D Hollow House hallway"></canvas>
+    <div class="survival-hud" aria-label="Lives">
+      <div class="lives-label">Lives</div>
+      <div id="livesRow" class="lives-row">
+        <span class="life-heart">♥</span>
+        <span class="life-heart">♥</span>
+        <span class="life-heart">♥</span>
+      </div>
+    </div>
     <div class="chapter">Prologue • Wake Up</div>
     <div id="objectiveText" class="objective">Find an exit</div>
     <div class="game-actions"><button id="homeBtn" aria-label="Return to menu">⌂</button></div>
@@ -1449,6 +1565,11 @@
       <button class="move-down" data-move="back" aria-label="Move backward">▼</button>
     </div>
     <div id="lookHint" class="look-hint">Drag scene to look</div>
+    <div class="energy-hud" aria-label="Energy">
+      <div class="energy-meta"><span>Energy</span><span id="energyText">100%</span></div>
+      <div class="energy-shell"><div id="energyFill" class="energy-fill"></div></div>
+    </div>
+    <button id="sprintBtn" class="sprint-btn" type="button" aria-pressed="false">Sprint</button>
     <div class="storybox">
       <p id="storyText">The fluorescent light stutters overhead. Rain echoes somewhere beyond the walls, but every window opens onto darkness.</p>
       <button id="nextBtn">Look down the hallway</button>
@@ -1527,6 +1648,16 @@
   let phoneRigAmount=0;
   const moveState={forward:false,back:false,left:false,right:false};
   const lookState={active:false,pointerId:null,lastX:0,lastY:0,yaw:0,pitch:0};
+  let sprintEnabled=false;
+  let energy=100;
+  let lastSprintUse=0;
+  let lastFootstepAt=0;
+  let footstepSide=1;
+  const MAX_ENERGY=100;
+  const SPRINT_DRAIN_PER_SEC=10;
+  const ENERGY_REFILL_PER_SEC=8;
+  const ENERGY_REFILL_DELAY_MS=10000;
+  save.lives=Number.isFinite(save.lives)?Math.max(0,Math.min(3,save.lives)):3;
 
   function ensureAudio(){
     if(!audioCtx){
@@ -1650,6 +1781,57 @@
     if(!save.sound||!ensureAudio()) return;
     playTone(118,.07,.014,'square',104);
     setTimeout(()=>playTone(112,.09,.012,'square',96),115);
+  }
+
+  function playFootstep(running=false){
+    if(!save.sound||!ensureAudio()) return;
+
+    const now=audioCtx.currentTime;
+    const noise=makeNoiseSource(false);
+    const hp=audioCtx.createBiquadFilter();
+    const lp=audioCtx.createBiquadFilter();
+    const noiseGain=audioCtx.createGain();
+    const thump=audioCtx.createOscillator();
+    const thumpGain=audioCtx.createGain();
+
+    hp.type='highpass';
+    hp.frequency.value=running?95:70;
+    lp.type='lowpass';
+    lp.frequency.value=running?980:720;
+
+    const base=running?.050:.035;
+    noiseGain.gain.setValueAtTime(base,now);
+    noiseGain.gain.exponentialRampToValueAtTime(.0001,now+(running?.12:.16));
+
+    thump.type='sine';
+    thump.frequency.setValueAtTime(running?92:74,now);
+    thump.frequency.exponentialRampToValueAtTime(running?48:42,now+(running?.11:.14));
+    thumpGain.gain.setValueAtTime(running?.042:.027,now);
+    thumpGain.gain.exponentialRampToValueAtTime(.0001,now+(running?.13:.17));
+
+    noise.connect(hp);
+    hp.connect(lp);
+
+    if(audioCtx.createStereoPanner){
+      const panner=audioCtx.createStereoPanner();
+      panner.pan.value=footstepSide*(running?.16:.10);
+      lp.connect(noiseGain);
+      noiseGain.connect(panner);
+      thump.connect(thumpGain);
+      thumpGain.connect(panner);
+      panner.connect(sfxBus);
+    }else{
+      lp.connect(noiseGain);
+      noiseGain.connect(sfxBus);
+      thump.connect(thumpGain);
+      thumpGain.connect(sfxBus);
+    }
+
+    footstepSide*=-1;
+    noise.start(now);
+    noise.stop(now+.2);
+    thump.start(now);
+    thump.stop(now+.2);
   }
 
   function playGlitchSound(){
@@ -2396,31 +2578,11 @@
     phoneRig.visible=true;
     camera.add(phoneRig);
 
-    const sleeveMat=new THREE.MeshStandardMaterial({
-      color:0x111416,
-      roughness:.94,
-      metalness:.01
-    });
-    const cuffMat=new THREE.MeshStandardMaterial({
-      color:0x1c2022,
-      roughness:.82,
-      metalness:.04
-    });
-    const skinMat=new THREE.MeshStandardMaterial({
-      color:0x7a5b4c,
-      roughness:.78,
-      metalness:0
-    });
-    const skinDarkMat=new THREE.MeshStandardMaterial({
-      color:0x5f443a,
-      roughness:.82,
-      metalness:0
-    });
-    const phoneMat=new THREE.MeshStandardMaterial({
-      color:0x090b0c,
-      roughness:.28,
-      metalness:.5
-    });
+    const sleeveMat=new THREE.MeshStandardMaterial({color:0x111416,roughness:.96,metalness:.01});
+    const cuffMat=new THREE.MeshStandardMaterial({color:0x1b1f20,roughness:.88,metalness:.02});
+    const skinMat=new THREE.MeshStandardMaterial({color:0x79594b,roughness:.82,metalness:0});
+    const skinShadowMat=new THREE.MeshStandardMaterial({color:0x64483e,roughness:.86,metalness:0});
+    const phoneMat=new THREE.MeshStandardMaterial({color:0x090b0c,roughness:.26,metalness:.5});
     const screenMat=new THREE.MeshStandardMaterial({
       color:0x172328,
       emissive:0x2b4650,
@@ -2428,123 +2590,101 @@
       roughness:.16
     });
 
-    function makeLimb(rTop,rBottom,length,material,segments=14){
-      const mesh=new THREE.Mesh(new THREE.CylinderGeometry(rTop,rBottom,length,segments),material);
+    function roundedPart(scale,material){
+      const mesh=new THREE.Mesh(new THREE.SphereGeometry(1,18,12),material);
+      mesh.scale.set(scale.x,scale.y,scale.z);
       mesh.castShadow=true;
       return mesh;
     }
 
-    // Right arm: upper sleeve -> elbow -> forearm -> wrist -> palm.
-    const rightArm=new THREE.Group();
-    const upperRight=makeLimb(.18,.145,.78,sleeveMat);
-    upperRight.position.set(.42,-.68,.12);
-    upperRight.rotation.z=-.58;
-    rightArm.add(upperRight);
+    function limbBetween(a,b,rA,rB,material){
+      const start=new THREE.Vector3(a[0],a[1],a[2]);
+      const end=new THREE.Vector3(b[0],b[1],b[2]);
+      const mid=start.clone().add(end).multiplyScalar(.5);
+      const len=start.distanceTo(end);
+      const mesh=new THREE.Mesh(new THREE.CylinderGeometry(rB,rA,len,16),material);
+      mesh.position.copy(mid);
+      mesh.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),end.clone().sub(start).normalize());
+      mesh.castShadow=true;
+      return mesh;
+    }
 
-    const elbowRight=new THREE.Mesh(new THREE.SphereGeometry(.145,14,10),sleeveMat);
-    elbowRight.scale.set(1,.9,1);
-    elbowRight.position.set(.2,-.38,.03);
-    elbowRight.castShadow=true;
-    rightArm.add(elbowRight);
+    function addFinger(handGroup,base,mid,tip,material){
+      const first=limbBetween(base,mid,.031,.027,material);
+      const second=limbBetween(mid,tip,.027,.021,material);
+      const joint=roundedPart({x:.034,y:.034,z:.034},material);
+      joint.position.set(mid[0],mid[1],mid[2]);
+      const fingertip=roundedPart({x:.026,y:.03,z:.024},material);
+      fingertip.position.set(tip[0],tip[1],tip[2]);
+      handGroup.add(first,second,joint,fingertip);
+    }
 
-    const forearmRight=makeLimb(.13,.095,.72,skinMat);
-    forearmRight.position.set(.09,-.08,-.02);
-    forearmRight.rotation.z=-.26;
-    rightArm.add(forearmRight);
-
-    const cuffRight=makeLimb(.145,.13,.15,cuffMat);
-    cuffRight.position.set(.18,-.37,.02);
-    cuffRight.rotation.z=-.26;
-    rightArm.add(cuffRight);
-
-    const wristRight=makeLimb(.085,.075,.18,skinMat);
-    wristRight.position.set(.015,.27,-.05);
-    wristRight.rotation.z=-.22;
-    rightArm.add(wristRight);
-
-    const palmRight=new THREE.Mesh(new THREE.SphereGeometry(.17,16,11),skinMat);
-    palmRight.scale.set(.9,1.25,.5);
-    palmRight.position.set(-.015,.41,-.08);
-    palmRight.rotation.z=-.16;
-    palmRight.castShadow=true;
-    rightArm.add(palmRight);
-
-    // Right fingers wrapping the right edge of the phone.
-    const fingerXs=[.16,.13,.10,.07];
-    fingerXs.forEach((x,index)=>{
-      const finger=makeLimb(.033,.027,.28-index*.018,index===3?skinDarkMat:skinMat,10);
-      finger.position.set(.19-index*.012,.52-index*.055,-.18);
-      finger.rotation.z=-.08-index*.035;
-      finger.rotation.x=.18;
-      rightArm.add(finger);
-    });
-    const rightThumb=makeLimb(.038,.03,.28,skinMat,10);
-    rightThumb.position.set(-.12,.47,-.2);
-    rightThumb.rotation.z=-1.02;
-    rightThumb.rotation.x=.18;
-    rightArm.add(rightThumb);
-    phoneRig.add(rightArm);
-
-    // Left supporting arm entering naturally from the lower-left.
-    const leftArm=new THREE.Group();
-    const upperLeft=makeLimb(.18,.145,.78,sleeveMat);
-    upperLeft.position.set(-.46,-.72,.16);
-    upperLeft.rotation.z=.6;
-    leftArm.add(upperLeft);
-
-    const elbowLeft=new THREE.Mesh(new THREE.SphereGeometry(.145,14,10),sleeveMat);
-    elbowLeft.position.set(-.2,-.4,.05);
-    elbowLeft.castShadow=true;
-    leftArm.add(elbowLeft);
-
-    const cuffLeft=makeLimb(.145,.13,.15,cuffMat);
-    cuffLeft.position.set(-.2,-.34,.02);
-    cuffLeft.rotation.z=.28;
-    leftArm.add(cuffLeft);
-
-    const forearmLeft=makeLimb(.13,.092,.68,skinMat);
-    forearmLeft.position.set(-.08,-.08,-.03);
-    forearmLeft.rotation.z=.28;
-    leftArm.add(forearmLeft);
-
-    const palmLeft=new THREE.Mesh(new THREE.SphereGeometry(.16,16,11),skinMat);
-    palmLeft.scale.set(.86,1.16,.48);
-    palmLeft.position.set(.015,.4,-.08);
-    palmLeft.rotation.z=.18;
-    palmLeft.castShadow=true;
-    leftArm.add(palmLeft);
-
-    const leftThumb=makeLimb(.036,.028,.25,skinMat,10);
-    leftThumb.position.set(.11,.49,-.18);
-    leftThumb.rotation.z=.92;
-    leftThumb.rotation.x=.18;
-    leftArm.add(leftThumb);
-    phoneRig.add(leftArm);
-
-    // Phone held between both hands.
+    // Phone centered between naturally connected arms.
     const phone=new THREE.Mesh(new THREE.BoxGeometry(.46,.82,.07),phoneMat);
-    phone.position.set(0,.5,-.2);
-    phone.rotation.x=-.08;
-    phone.rotation.z=.02;
+    phone.position.set(0,.48,-.24);
+    phone.rotation.x=-.055;
     phone.castShadow=true;
     phoneRig.add(phone);
 
     const phoneScreen=new THREE.Mesh(new THREE.PlaneGeometry(.38,.67),screenMat);
-    phoneScreen.position.set(0,.5,-.237);
-    phoneScreen.rotation.y=Math.PI;
+    phoneScreen.position.set(0,.49,-.202);
     phoneRig.add(phoneScreen);
 
-    // Tiny top speaker/camera detail.
     const phoneSpeaker=new THREE.Mesh(
       new THREE.BoxGeometry(.12,.018,.006),
       new THREE.MeshBasicMaterial({color:0x050607})
     );
-    phoneSpeaker.position.set(0,.78,-.242);
-    phoneSpeaker.rotation.y=Math.PI;
+    phoneSpeaker.position.set(0,.78,-.198);
     phoneRig.add(phoneSpeaker);
 
-    phoneRig.position.set(.46,-1.78,-1.12);
-    phoneRig.rotation.set(-.16,-.2,.08);
+    // Right arm: sleeve -> cuff -> exposed forearm -> wrist -> palm.
+    const rightArm=new THREE.Group();
+    rightArm.add(limbBetween([.78,-1.12,.14],[.48,-.62,.06],.20,.17,sleeveMat));
+    const rightElbow=roundedPart({x:.17,y:.15,z:.17},sleeveMat);
+    rightElbow.position.set(.48,-.62,.06);
+    rightArm.add(rightElbow);
+    rightArm.add(limbBetween([.48,-.62,.06],[.31,-.33,-.02],.17,.145,cuffMat));
+    rightArm.add(limbBetween([.31,-.33,-.02],[.25,.16,-.10],.13,.09,skinMat));
+    const rightWrist=roundedPart({x:.09,y:.12,z:.08},skinMat);
+    rightWrist.position.set(.25,.17,-.10);
+    rightArm.add(rightWrist);
+    const rightPalm=roundedPart({x:.17,y:.23,z:.075},skinMat);
+    rightPalm.position.set(.27,.38,-.13);
+    rightPalm.rotation.z=-.12;
+    rightArm.add(rightPalm);
+
+    addFinger(rightArm,[.31,.47,-.14],[.31,.57,-.18],[.28,.65,-.22],skinMat);
+    addFinger(rightArm,[.32,.42,-.14],[.33,.50,-.18],[.30,.57,-.22],skinMat);
+    addFinger(rightArm,[.31,.37,-.14],[.32,.44,-.18],[.29,.50,-.22],skinMat);
+    addFinger(rightArm,[.29,.32,-.14],[.30,.38,-.18],[.27,.43,-.22],skinShadowMat);
+    addFinger(rightArm,[.18,.43,-.12],[.10,.48,-.17],[.04,.51,-.21],skinMat);
+    phoneRig.add(rightArm);
+
+    // Left arm mirrors the support grip with a connected wrist/palm.
+    const leftArm=new THREE.Group();
+    leftArm.add(limbBetween([-.80,-1.15,.16],[-.49,-.64,.07],.20,.17,sleeveMat));
+    const leftElbow=roundedPart({x:.17,y:.15,z:.17},sleeveMat);
+    leftElbow.position.set(-.49,-.64,.07);
+    leftArm.add(leftElbow);
+    leftArm.add(limbBetween([-.49,-.64,.07],[-.31,-.34,-.02],.17,.145,cuffMat));
+    leftArm.add(limbBetween([-.31,-.34,-.02],[-.25,.15,-.10],.13,.09,skinMat));
+    const leftWrist=roundedPart({x:.09,y:.12,z:.08},skinMat);
+    leftWrist.position.set(-.25,.16,-.10);
+    leftArm.add(leftWrist);
+    const leftPalm=roundedPart({x:.17,y:.23,z:.075},skinMat);
+    leftPalm.position.set(-.27,.38,-.13);
+    leftPalm.rotation.z=.12;
+    leftArm.add(leftPalm);
+
+    addFinger(leftArm,[-.31,.47,-.14],[-.31,.57,-.18],[-.28,.65,-.22],skinMat);
+    addFinger(leftArm,[-.32,.42,-.14],[-.33,.50,-.18],[-.30,.57,-.22],skinMat);
+    addFinger(leftArm,[-.31,.37,-.14],[-.32,.44,-.18],[-.29,.50,-.22],skinMat);
+    addFinger(leftArm,[-.29,.32,-.14],[-.30,.38,-.18],[-.27,.43,-.22],skinShadowMat);
+    addFinger(leftArm,[-.18,.43,-.12],[-.10,.48,-.17],[-.04,.51,-.21],skinMat);
+    phoneRig.add(leftArm);
+
+    phoneRig.position.set(0,-1.78,-1.12);
+    phoneRig.rotation.set(-.12,0,0);
 
     threeGame={
       renderer,scene,camera,ceilingLights,phoneRig,dustPoints,emergencyLight,
@@ -2616,8 +2756,15 @@
       btn.addEventListener('pointerleave',up);
     });
 
+    const sprintBtn=$('sprintBtn');
+    if(sprintBtn) sprintBtn.addEventListener('click',toggleSprint);
+
     const keyMap={KeyW:'forward',ArrowUp:'forward',KeyS:'back',ArrowDown:'back',KeyA:'left',ArrowLeft:'left',KeyD:'right',ArrowRight:'right'};
     window.addEventListener('keydown',e=>{
+      if(e.code==='ShiftLeft'||e.code==='ShiftRight'){
+        if(!e.repeat&&$('game').classList.contains('active')) toggleSprint();
+        return;
+      }
       const k=keyMap[e.code];
       if(k&&$('game').classList.contains('active')) moveState[k]=true;
     });
@@ -2639,7 +2786,32 @@
 
     if(threeRunning){
       const moving=moveState.forward||moveState.back||moveState.left||moveState.right;
-      const speed=2.25;
+      const sprintingNow=moving&&sprintEnabled&&energy>0;
+      const speed=2.25*(sprintingNow?1.5:1);
+
+      if(sprintingNow){
+        energy-=SPRINT_DRAIN_PER_SEC*dt;
+        lastSprintUse=now;
+        if(energy<=0){
+          energy=0;
+          setSprint(false);
+        }
+      }else if(now-lastSprintUse>=ENERGY_REFILL_DELAY_MS&&energy<MAX_ENERGY){
+        energy=Math.min(MAX_ENERGY,energy+ENERGY_REFILL_PER_SEC*dt);
+      }
+
+      updateEnergyHud();
+
+      if(moving){
+        const stepInterval=sprintingNow?310:520;
+        if(now-lastFootstepAt>=stepInterval){
+          playFootstep(sprintingNow);
+          lastFootstepAt=now;
+        }
+      }else{
+        lastFootstepAt=now-200;
+      }
+
       const forward=new THREE.Vector3(0,0,-1).applyAxisAngle(new THREE.Vector3(0,1,0),lookState.yaw);
       const right=new THREE.Vector3(1,0,0).applyAxisAngle(new THREE.Vector3(0,1,0),lookState.yaw);
       const delta=new THREE.Vector3();
@@ -2654,10 +2826,10 @@
         g.camera.position.add(delta);
         g.camera.position.x=Math.max(-3.15,Math.min(3.15,g.camera.position.x));
         g.camera.position.z=Math.max(-27.2,Math.min(7.2,g.camera.position.z));
-        g.bob+=dt*9;
+        g.bob+=dt*(sprintingNow?13.5:9);
       }
 
-      const bobY=moving?Math.sin(g.bob)*.022:0;
+      const bobY=moving?Math.sin(g.bob)*(sprintingNow?.034:.022):0;
       g.camera.position.y=g.baseY+bobY;
       g.camera.rotation.order='YXZ';
       g.camera.rotation.y=lookState.yaw;
@@ -2714,6 +2886,7 @@
 
   function pauseThreeGame(){
     threeRunning=false;
+    setSprint(false);
     Object.keys(moveState).forEach(k=>moveState[k]=false);
   }
 
@@ -2726,9 +2899,48 @@
     phoneRigTarget=0;
   }
 
+  function updateLivesHud(){
+    const hearts=[...document.querySelectorAll('#livesRow .life-heart')];
+    hearts.forEach((heart,index)=>heart.classList.toggle('lost',index>=save.lives));
+  }
+
+  function updateEnergyHud(){
+    energy=Math.max(0,Math.min(MAX_ENERGY,energy));
+    const fill=$('energyFill');
+    const text=$('energyText');
+    const sprint=$('sprintBtn');
+
+    if(fill){
+      fill.style.width=energy.toFixed(1)+'%';
+      fill.classList.toggle('low',energy<=25);
+    }
+    if(text) text.textContent=Math.round(energy)+'%';
+    if(sprint){
+      sprint.classList.toggle('active',sprintEnabled);
+      sprint.setAttribute('aria-pressed',sprintEnabled?'true':'false');
+      sprint.textContent=sprintEnabled?'Sprint: ON':'Sprint';
+      sprint.disabled=energy<=0;
+    }
+  }
+
+  function setSprint(enabled){
+    if(enabled&&energy<=0) enabled=false;
+    sprintEnabled=!!enabled;
+    if(!sprintEnabled) Object.keys(moveState).forEach(k=>moveState[k]=moveState[k]);
+    updateEnergyHud();
+  }
+
+  function toggleSprint(){
+    ensureAudio();
+    setSprint(!sprintEnabled);
+    playUIClick('soft');
+  }
+
   const persist=()=>{
+    save.lives=Math.max(0,Math.min(3,save.lives));
     localStorage.setItem('hollowSave',JSON.stringify(save));
     $('continueBtn').disabled=!save.progress;
+    updateLivesHud();
   };
 
   const buzz=()=>{if(save.vibe&&navigator.vibrate) navigator.vibrate(25)};
@@ -2962,6 +3174,10 @@
     ensureAudio();
     playUIClick('soft');
     save.progress=0;
+    save.lives=3;
+    energy=100;
+    setSprint(false);
+    updateEnergyHud();
     persist();
     toast('Progress reset');
   };
@@ -3065,6 +3281,8 @@
     }
   });
 
+  updateLivesHud();
+  updateEnergyHud();
   sync();
   runIntro();
 
