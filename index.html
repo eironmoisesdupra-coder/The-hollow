@@ -177,6 +177,75 @@
       90%{opacity:.07}
       91%{opacity:.16}
     }
+    .game3d{
+      position:absolute;
+      inset:0;
+      z-index:1;
+      width:100%;
+      height:100%;
+      display:block;
+      touch-action:none;
+      opacity:0;
+      transition:opacity .45s ease;
+      background:#020304
+    }
+    #game.three-active .game3d{opacity:1}
+    #game.three-active .prologue-scene{opacity:0}
+    .prologue-scene{transition:opacity .45s ease}
+    .move-pad{
+      position:absolute;
+      z-index:8;
+      left:max(14px,env(safe-area-inset-left));
+      bottom:max(18px,env(safe-area-inset-bottom));
+      width:126px;
+      height:126px;
+      display:grid;
+      grid-template-columns:repeat(3,42px);
+      grid-template-rows:repeat(3,42px);
+      opacity:.66;
+      user-select:none;
+      -webkit-user-select:none;
+      touch-action:none
+    }
+    .move-pad button{
+      width:38px;
+      height:38px;
+      margin:2px;
+      border:1px solid rgba(202,210,212,.14);
+      border-radius:50%;
+      background:rgba(4,7,8,.54);
+      color:rgba(220,225,226,.7);
+      font:16px system-ui,sans-serif;
+      backdrop-filter:blur(3px)
+    }
+    .move-pad button:active{background:rgba(78,90,94,.38)}
+    .move-up{grid-column:2;grid-row:1}
+    .move-left{grid-column:1;grid-row:2}
+    .move-right{grid-column:3;grid-row:2}
+    .move-down{grid-column:2;grid-row:3}
+    .look-hint{
+      position:absolute;
+      z-index:7;
+      right:max(18px,env(safe-area-inset-right));
+      bottom:max(22px,env(safe-area-inset-bottom));
+      color:rgba(200,207,209,.35);
+      font:9px system-ui,sans-serif;
+      letter-spacing:.18em;
+      text-transform:uppercase;
+      pointer-events:none;
+      transition:opacity .5s ease
+    }
+    .look-hint.used{opacity:0}
+    .phone-overlay{
+      background:rgba(0,0,0,.26)
+    }
+    .phone-overlay.open .phone-device{
+      animation:phoneUiFade .18s ease both
+    }
+    @keyframes phoneUiFade{
+      from{opacity:0;transform:translateY(10px) scale(.985)}
+      to{opacity:1;transform:translateY(0) scale(1)}
+    }
     .chapter{
       position:absolute;
       z-index:4;
@@ -460,7 +529,7 @@
       .prologue-scene{background-position:center 47%}
       .chapter{top:max(14px,env(safe-area-inset-top))}
       .objective{top:max(43px,calc(env(safe-area-inset-top) + 30px))}
-      .storybox{width:min(72vw,720px);padding:10px 14px}
+      .storybox{width:min(64vw,680px);padding:10px 14px;margin-left:auto;margin-right:max(16px,8vw)}
       .storybox p{font-size:12px;margin-bottom:9px}
       .storybox button{min-height:38px}
     }
@@ -1303,9 +1372,17 @@
   </section>
   <section id="game" class="screen">
     <div class="prologue-scene"></div>
+    <canvas id="game3d" class="game3d" aria-label="3D Hollow House hallway"></canvas>
     <div class="chapter">Prologue • Wake Up</div>
     <div id="objectiveText" class="objective">Find an exit</div>
     <div class="game-actions"><button id="homeBtn" aria-label="Return to menu">⌂</button></div>
+    <div id="movePad" class="move-pad" aria-label="Movement controls">
+      <button class="move-up" data-move="forward" aria-label="Move forward">▲</button>
+      <button class="move-left" data-move="left" aria-label="Move left">◀</button>
+      <button class="move-right" data-move="right" aria-label="Move right">▶</button>
+      <button class="move-down" data-move="back" aria-label="Move backward">▼</button>
+    </div>
+    <div id="lookHint" class="look-hint">Drag scene to look</div>
     <div class="storybox">
       <p id="storyText">The fluorescent light stutters overhead. Rain echoes somewhere beyond the walls, but every window opens onto darkness.</p>
       <button id="nextBtn">Look down the hallway</button>
@@ -1352,6 +1429,7 @@
   </section>
   <div id="toast" class="toast">Saved</div>
 </div>
+<script src="./vendor/three.min.js"></script>
 <script>
 (() => {
   const screens=[...document.querySelectorAll('.screen')];
@@ -1375,6 +1453,13 @@
   let introTimers=[];
   let introArmed=false;
   let phoneMessageRead=false;
+
+  let threeGame=null;
+  let threeRunning=false;
+  let phoneRigTarget=0;
+  let phoneRigAmount=0;
+  const moveState={forward:false,back:false,left:false,right:false};
+  const lookState={active:false,pointerId:null,lastX:0,lastY:0,yaw:0,pitch:0};
 
   function ensureAudio(){
     if(!audioCtx){
@@ -1816,6 +1901,459 @@
     titleGlitchInterval=setInterval(schedule,cycle);
   }
 
+  function makeCanvasTexture(kind='wall'){
+    const canvas=document.createElement('canvas');
+    canvas.width=256;
+    canvas.height=256;
+    const ctx=canvas.getContext('2d');
+
+    const base=kind==='floor'?'#15191b':kind==='door'?'#181514':'#24292b';
+    ctx.fillStyle=base;
+    ctx.fillRect(0,0,256,256);
+
+    for(let i=0;i<950;i++){
+      const v=Math.floor(18+Math.random()*45);
+      const a=.025+Math.random()*.05;
+      ctx.fillStyle='rgba('+v+','+(v+4)+','+(v+5)+','+a+')';
+      const s=1+Math.random()*4;
+      ctx.fillRect(Math.random()*256,Math.random()*256,s,s);
+    }
+
+    if(kind==='wall'){
+      for(let i=0;i<26;i++){
+        ctx.strokeStyle='rgba(8,10,11,'+(.06+Math.random()*.12)+')';
+        ctx.lineWidth=1+Math.random()*3;
+        ctx.beginPath();
+        const x=Math.random()*256;
+        ctx.moveTo(x,Math.random()*80);
+        ctx.lineTo(x+Math.random()*18-9,160+Math.random()*96);
+        ctx.stroke();
+      }
+    }
+
+    if(kind==='floor'){
+      ctx.strokeStyle='rgba(120,135,140,.08)';
+      for(let y=0;y<256;y+=32){
+        ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(256,y);ctx.stroke();
+      }
+      for(let x=0;x<256;x+=32){
+        ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,256);ctx.stroke();
+      }
+    }
+
+    const texture=new THREE.CanvasTexture(canvas);
+    texture.wrapS=texture.wrapT=THREE.RepeatWrapping;
+    texture.anisotropy=2;
+    if(kind==='wall') texture.repeat.set(4,2);
+    if(kind==='floor') texture.repeat.set(4,14);
+    return texture;
+  }
+
+  function makeTextTexture(text,fg='#d7c6aa',bg='#080808'){
+    const canvas=document.createElement('canvas');
+    canvas.width=512;
+    canvas.height=128;
+    const ctx=canvas.getContext('2d');
+    ctx.fillStyle=bg;
+    ctx.fillRect(0,0,512,128);
+    ctx.fillStyle=fg;
+    ctx.font='600 42px monospace';
+    ctx.textAlign='center';
+    ctx.textBaseline='middle';
+    ctx.fillText(text,256,64);
+    const tex=new THREE.CanvasTexture(canvas);
+    tex.minFilter=THREE.LinearFilter;
+    return tex;
+  }
+
+  function initThreeGame(){
+    if(threeGame||!window.THREE) return !!threeGame;
+
+    const canvas=$('game3d');
+    const renderer=new THREE.WebGLRenderer({
+      canvas,
+      antialias:true,
+      alpha:false,
+      powerPreference:'high-performance'
+    });
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio||1,1.5));
+    renderer.setClearColor(0x020304,1);
+    renderer.outputEncoding=THREE.sRGBEncoding;
+    renderer.toneMapping=THREE.ACESFilmicToneMapping;
+    renderer.toneMappingExposure=.72;
+
+    const scene=new THREE.Scene();
+    scene.background=new THREE.Color(0x030506);
+    scene.fog=new THREE.FogExp2(0x05080a,.034);
+
+    const camera=new THREE.PerspectiveCamera(68,1,.05,80);
+    camera.position.set(0,1.65,7.2);
+    scene.add(camera);
+
+    const wallTex=makeCanvasTexture('wall');
+    const floorTex=makeCanvasTexture('floor');
+    const doorTex=makeCanvasTexture('door');
+
+    const wallMat=new THREE.MeshStandardMaterial({
+      map:wallTex,
+      color:0x7f898c,
+      roughness:.96,
+      metalness:.02
+    });
+    const floorMat=new THREE.MeshStandardMaterial({
+      map:floorTex,
+      color:0x485055,
+      roughness:.58,
+      metalness:.18
+    });
+    const ceilingMat=new THREE.MeshStandardMaterial({
+      color:0x24292b,
+      roughness:.98
+    });
+    const doorMat=new THREE.MeshStandardMaterial({
+      map:doorTex,
+      color:0x2b2523,
+      roughness:.9,
+      metalness:.05
+    });
+    const metalMat=new THREE.MeshStandardMaterial({
+      color:0x41484b,
+      roughness:.48,
+      metalness:.64
+    });
+
+    const floor=new THREE.Mesh(new THREE.PlaneGeometry(8,40),floorMat);
+    floor.rotation.x=-Math.PI/2;
+    floor.position.set(0,0,-11.5);
+    scene.add(floor);
+
+    const ceiling=new THREE.Mesh(new THREE.PlaneGeometry(8,40),ceilingMat);
+    ceiling.rotation.x=Math.PI/2;
+    ceiling.position.set(0,4,-11.5);
+    scene.add(ceiling);
+
+    const leftWall=new THREE.Mesh(new THREE.BoxGeometry(.22,4,40),wallMat);
+    leftWall.position.set(-4,2,-11.5);
+    scene.add(leftWall);
+    const rightWall=leftWall.clone();
+    rightWall.position.x=4;
+    scene.add(rightWall);
+
+    const endWall=new THREE.Mesh(new THREE.BoxGeometry(8,4,.25),wallMat);
+    endWall.position.set(0,2,-31.35);
+    scene.add(endWall);
+
+    const doorPositions=[4.3,-2,-8.3,-14.6,-20.9];
+    doorPositions.forEach((z,index)=>{
+      [-1,1].forEach(side=>{
+        const door=new THREE.Mesh(new THREE.BoxGeometry(.18,2.85,1.6),doorMat);
+        door.position.set(side*3.88,1.48,z);
+        scene.add(door);
+
+        const frameMat=new THREE.MeshStandardMaterial({color:0x111314,roughness:.9});
+        const top=new THREE.Mesh(new THREE.BoxGeometry(.3,.14,1.86),frameMat);
+        top.position.set(side*3.72,2.98,z);
+        scene.add(top);
+
+        const knob=new THREE.Mesh(
+          new THREE.SphereGeometry(.055,8,6),
+          new THREE.MeshStandardMaterial({color:0x7b7568,roughness:.35,metalness:.65})
+        );
+        knob.position.set(side*3.72,1.45,z+(side>0?-.45:.45));
+        scene.add(knob);
+
+        const plaqueTex=makeTextTexture(String(301+index*2+(side<0?1:0)),'#9a9486','#161412');
+        const plaque=new THREE.Mesh(
+          new THREE.PlaneGeometry(.42,.18),
+          new THREE.MeshBasicMaterial({map:plaqueTex,transparent:false})
+        );
+        plaque.position.set(side*3.755,2.35,z);
+        plaque.rotation.y=side>0?-Math.PI/2:Math.PI/2;
+        scene.add(plaque);
+      });
+    });
+
+    const elevatorGroup=new THREE.Group();
+    const e1=new THREE.Mesh(new THREE.BoxGeometry(1.7,3.1,.12),metalMat);
+    e1.position.set(-.86,1.58,-31.05);
+    elevatorGroup.add(e1);
+    const e2=e1.clone();
+    e2.position.x=.86;
+    elevatorGroup.add(e2);
+
+    const frameTop=new THREE.Mesh(
+      new THREE.BoxGeometry(4,.28,.35),
+      new THREE.MeshStandardMaterial({color:0x1a1d1e,roughness:.75,metalness:.25})
+    );
+    frameTop.position.set(0,3.25,-30.95);
+    elevatorGroup.add(frameTop);
+
+    const signTex=makeTextTexture('FLOOR — H','#d0b08a','#090909');
+    const sign=new THREE.Mesh(
+      new THREE.PlaneGeometry(2.4,.52),
+      new THREE.MeshBasicMaterial({map:signTex})
+    );
+    sign.position.set(0,3.52,-30.73);
+    elevatorGroup.add(sign);
+
+    const callBox=new THREE.Mesh(
+      new THREE.BoxGeometry(.18,.38,.1),
+      new THREE.MeshStandardMaterial({color:0x232628,metalness:.7,roughness:.3})
+    );
+    callBox.position.set(2.05,1.45,-30.86);
+    elevatorGroup.add(callBox);
+
+    const callLight=new THREE.PointLight(0xb35b42,.6,2.2);
+    callLight.position.set(2.05,1.55,-30.6);
+    elevatorGroup.add(callLight);
+    scene.add(elevatorGroup);
+
+    const ambient=new THREE.HemisphereLight(0x8095a0,0x070809,.38);
+    scene.add(ambient);
+
+    const ceilingLights=[];
+    [4,-5,-14,-23].forEach((z,index)=>{
+      const panelMat=new THREE.MeshStandardMaterial({
+        color:0xd5e2e5,
+        emissive:0x8ca7b0,
+        emissiveIntensity:index===1?.55:.8,
+        roughness:.65
+      });
+      const panel=new THREE.Mesh(new THREE.BoxGeometry(.62,.06,1.2),panelMat);
+      panel.position.set(0,3.93,z);
+      scene.add(panel);
+
+      const light=new THREE.PointLight(0xa7c6d2,index===1?.65:.95,11,2);
+      light.position.set(0,3.55,z);
+      scene.add(light);
+      ceilingLights.push({light,panel,index});
+    });
+
+    for(let i=0;i<8;i++){
+      const puddle=new THREE.Mesh(
+        new THREE.PlaneGeometry(.8+Math.random()*1.8,.4+Math.random()*1.5),
+        new THREE.MeshStandardMaterial({
+          color:0x25353b,
+          transparent:true,
+          opacity:.32,
+          roughness:.18,
+          metalness:.35
+        })
+      );
+      puddle.rotation.x=-Math.PI/2;
+      puddle.position.set((Math.random()-.5)*5.5,.012,4-Math.random()*29);
+      puddle.rotation.z=Math.random()*Math.PI;
+      scene.add(puddle);
+    }
+
+    const phoneRig=new THREE.Group();
+    phoneRig.visible=true;
+    camera.add(phoneRig);
+
+    const sleeveMat=new THREE.MeshStandardMaterial({color:0x151719,roughness:.9});
+    const handMat=new THREE.MeshStandardMaterial({color:0x6a5549,roughness:.92});
+    const phoneMat=new THREE.MeshStandardMaterial({color:0x0a0c0d,roughness:.32,metalness:.45});
+    const screenMat=new THREE.MeshStandardMaterial({
+      color:0x1a252a,
+      emissive:0x29404a,
+      emissiveIntensity:.55,
+      roughness:.2
+    });
+
+    const forearm=new THREE.Mesh(new THREE.CylinderGeometry(.11,.17,.78,10),sleeveMat);
+    forearm.rotation.z=-.34;
+    forearm.position.set(.26,-.34,.08);
+    phoneRig.add(forearm);
+
+    const hand=new THREE.Mesh(new THREE.BoxGeometry(.28,.38,.18),handMat);
+    hand.position.set(.12,.08,-.06);
+    hand.rotation.z=-.18;
+    phoneRig.add(hand);
+
+    const phone=new THREE.Mesh(new THREE.BoxGeometry(.46,.82,.065),phoneMat);
+    phone.position.set(0,.48,-.14);
+    phone.rotation.x=-.08;
+    phone.rotation.z=.03;
+    phoneRig.add(phone);
+
+    const phoneScreen=new THREE.Mesh(new THREE.PlaneGeometry(.38,.67),screenMat);
+    phoneScreen.position.set(0,.49,-.177);
+    phoneScreen.rotation.y=Math.PI;
+    phoneRig.add(phoneScreen);
+
+    phoneRig.position.set(.46,-1.65,-1.05);
+    phoneRig.rotation.set(-.2,-.28,.12);
+
+    threeGame={
+      renderer,scene,camera,ceilingLights,phoneRig,
+      lastTime:performance.now(),
+      raf:0,
+      baseY:1.65,
+      bob:0,
+      flickerSeed:0
+    };
+
+    const resize=()=>{
+      if(!threeGame) return;
+      const rect=$('game').getBoundingClientRect();
+      if(rect.width<2||rect.height<2) return;
+      renderer.setSize(rect.width,rect.height,false);
+      camera.aspect=rect.width/rect.height;
+      camera.updateProjectionMatrix();
+    };
+    threeGame.resize=resize;
+    resize();
+    window.addEventListener('resize',resize);
+
+    const onPointerDown=e=>{
+      if(!$('game').classList.contains('active')||$('phoneOverlay').classList.contains('open')) return;
+      if(e.target!==renderer.domElement) return;
+      lookState.active=true;
+      lookState.pointerId=e.pointerId;
+      lookState.lastX=e.clientX;
+      lookState.lastY=e.clientY;
+      renderer.domElement.setPointerCapture?.(e.pointerId);
+      $('lookHint')?.classList.add('used');
+    };
+    const onPointerMove=e=>{
+      if(!lookState.active||e.pointerId!==lookState.pointerId) return;
+      const dx=e.clientX-lookState.lastX;
+      const dy=e.clientY-lookState.lastY;
+      lookState.lastX=e.clientX;
+      lookState.lastY=e.clientY;
+      lookState.yaw-=dx*.0045;
+      lookState.pitch-=dy*.0036;
+      lookState.pitch=Math.max(-.78,Math.min(.72,lookState.pitch));
+    };
+    const onPointerUp=e=>{
+      if(e.pointerId===lookState.pointerId){
+        lookState.active=false;
+        lookState.pointerId=null;
+      }
+    };
+
+    renderer.domElement.addEventListener('pointerdown',onPointerDown);
+    renderer.domElement.addEventListener('pointermove',onPointerMove);
+    renderer.domElement.addEventListener('pointerup',onPointerUp);
+    renderer.domElement.addEventListener('pointercancel',onPointerUp);
+
+    document.querySelectorAll('[data-move]').forEach(btn=>{
+      const key=btn.dataset.move;
+      const down=e=>{
+        e.preventDefault();
+        moveState[key]=true;
+        btn.setPointerCapture?.(e.pointerId);
+      };
+      const up=e=>{
+        e.preventDefault();
+        moveState[key]=false;
+      };
+      btn.addEventListener('pointerdown',down);
+      btn.addEventListener('pointerup',up);
+      btn.addEventListener('pointercancel',up);
+      btn.addEventListener('pointerleave',up);
+    });
+
+    const keyMap={KeyW:'forward',ArrowUp:'forward',KeyS:'back',ArrowDown:'back',KeyA:'left',ArrowLeft:'left',KeyD:'right',ArrowRight:'right'};
+    window.addEventListener('keydown',e=>{
+      const k=keyMap[e.code];
+      if(k&&$('game').classList.contains('active')) moveState[k]=true;
+    });
+    window.addEventListener('keyup',e=>{
+      const k=keyMap[e.code];
+      if(k) moveState[k]=false;
+    });
+
+    $('game').classList.add('three-active');
+    return true;
+  }
+
+  function animateThreeGame(now){
+    if(!threeGame) return;
+
+    const g=threeGame;
+    const dt=Math.min(.04,Math.max(.001,(now-g.lastTime)/1000));
+    g.lastTime=now;
+
+    if(threeRunning){
+      const moving=moveState.forward||moveState.back||moveState.left||moveState.right;
+      const speed=2.25;
+      const forward=new THREE.Vector3(0,0,-1).applyAxisAngle(new THREE.Vector3(0,1,0),lookState.yaw);
+      const right=new THREE.Vector3(1,0,0).applyAxisAngle(new THREE.Vector3(0,1,0),lookState.yaw);
+      const delta=new THREE.Vector3();
+
+      if(moveState.forward) delta.add(forward);
+      if(moveState.back) delta.sub(forward);
+      if(moveState.right) delta.add(right);
+      if(moveState.left) delta.sub(right);
+
+      if(delta.lengthSq()>0){
+        delta.normalize().multiplyScalar(speed*dt);
+        g.camera.position.add(delta);
+        g.camera.position.x=Math.max(-3.15,Math.min(3.15,g.camera.position.x));
+        g.camera.position.z=Math.max(-27.2,Math.min(7.2,g.camera.position.z));
+        g.bob+=dt*9;
+      }
+
+      const bobY=moving?Math.sin(g.bob)*.022:0;
+      g.camera.position.y=g.baseY+bobY;
+      g.camera.rotation.order='YXZ';
+      g.camera.rotation.y=lookState.yaw;
+      g.camera.rotation.x=lookState.pitch+(moving?Math.sin(g.bob*.5)*.004:0);
+    }
+
+    const target=phoneRigTarget;
+    const rate=1-Math.pow(.001,dt);
+    phoneRigAmount+=(target-phoneRigAmount)*rate;
+    const t=Math.max(0,Math.min(1,phoneRigAmount));
+    const eased=t*t*(3-2*t);
+    if(g.phoneRig){
+      g.phoneRig.position.set(
+        .46-.28*eased,
+        -1.65+1.34*eased,
+        -1.05-.18*eased
+      );
+      g.phoneRig.rotation.set(
+        -.2+.12*eased,
+        -.28+.22*eased,
+        .12-.08*eased
+      );
+    }
+
+    const flicker=Math.sin(now*.013)+Math.sin(now*.037)*.35;
+    g.ceilingLights.forEach((entry,index)=>{
+      const base=index===1?.62:.9;
+      const rare=(Math.floor(now/1600)%7===3&&index===2)?(.48+.1*Math.sin(now*.08)):1;
+      entry.light.intensity=base*(.94+.06*flicker)*rare;
+      entry.panel.material.emissiveIntensity=(index===1?.52:.75)*rare;
+    });
+
+    g.renderer.render(g.scene,g.camera);
+    g.raf=requestAnimationFrame(animateThreeGame);
+  }
+
+  function startThreeGame(){
+    if(!initThreeGame()) return;
+    threeRunning=true;
+    threeGame.lastTime=performance.now();
+    if(!threeGame.raf) threeGame.raf=requestAnimationFrame(animateThreeGame);
+    threeGame.resize?.();
+  }
+
+  function pauseThreeGame(){
+    threeRunning=false;
+    Object.keys(moveState).forEach(k=>moveState[k]=false);
+  }
+
+  function raisePhoneRig(){
+    if(!initThreeGame()) return;
+    phoneRigTarget=1;
+  }
+
+  function lowerPhoneRig(){
+    phoneRigTarget=0;
+  }
+
   const persist=()=>{
     localStorage.setItem('hollowSave',JSON.stringify(save));
     $('continueBtn').disabled=!save.progress;
@@ -1833,6 +2371,9 @@
   function show(id){
     screens.forEach(s=>s.classList.remove('active','fade-out'));
     $(id).classList.add('active');
+
+    if(id==='game') startThreeGame();
+    else pauseThreeGame();
 
     if(id==='home'||id==='settings'){
       startMenuAmbience();
@@ -2024,8 +2565,13 @@
     phoneMessageRead=false;
     $('phoneInbox').classList.remove('hidden');
     $('phoneMessage').classList.add('hidden');
-    $('phoneOverlay').classList.add('open');
-    $('phoneOverlay').setAttribute('aria-hidden','false');
+    raisePhoneRig();
+    threeRunning=false;
+
+    setTimeout(()=>{
+      $('phoneOverlay').classList.add('open');
+      $('phoneOverlay').setAttribute('aria-hidden','false');
+    },420);
   }
 
   function openNoahMessage(){
@@ -2041,6 +2587,9 @@
     playUIClick('soft');
     $('phoneOverlay').classList.remove('open');
     $('phoneOverlay').setAttribute('aria-hidden','true');
+    lowerPhoneRig();
+
+    setTimeout(()=>{threeRunning=$('game').classList.contains('active')},320);
 
     if(phoneMessageRead){
       const objective=$('objectiveText');
