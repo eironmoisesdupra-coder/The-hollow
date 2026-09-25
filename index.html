@@ -988,10 +988,14 @@
   let audioCtx=null;
   let masterGain=null;
   let ambienceBus=null;
+  let musicBus=null;
   let sfxBus=null;
   let staticBus=null;
   let noiseBuffer=null;
   let menuAmbience=null;
+  let menuMusic=null;
+  let menuMusicTimers=[];
+  let menuMotifTimer=null;
   let activeStatic=null;
   let titleGlitchInterval=null;
   let titleGlitchTimers=[];
@@ -1006,14 +1010,17 @@
       audioCtx=new Ctx();
       masterGain=audioCtx.createGain();
       ambienceBus=audioCtx.createGain();
+      musicBus=audioCtx.createGain();
       sfxBus=audioCtx.createGain();
       staticBus=audioCtx.createGain();
 
       ambienceBus.gain.value=.9;
+      musicBus.gain.value=.72;
       sfxBus.gain.value=.8;
       staticBus.gain.value=.9;
 
       ambienceBus.connect(masterGain);
+      musicBus.connect(masterGain);
       sfxBus.connect(masterGain);
       staticBus.connect(masterGain);
       masterGain.connect(audioCtx.destination);
@@ -1181,6 +1188,185 @@
     setTimeout(()=>current.sources.forEach(src=>safeStop(src)),Math.max(50,fade*1000+80));
   }
 
+  function clearMenuMusicTimers(){
+    menuMusicTimers.forEach(clearTimeout);
+    menuMusicTimers=[];
+    if(menuMotifTimer){
+      clearTimeout(menuMotifTimer);
+      menuMotifTimer=null;
+    }
+  }
+
+  function playMenuNote(freq,duration=2.8,volume=.006,startDelay=0){
+    if(!save.sound||!audioCtx||!musicBus||!menuMusic) return;
+
+    const start=audioCtx.currentTime+startDelay;
+    const oscA=audioCtx.createOscillator();
+    const oscB=audioCtx.createOscillator();
+    const gain=audioCtx.createGain();
+    const lp=audioCtx.createBiquadFilter();
+
+    oscA.type='sine';
+    oscB.type='triangle';
+    oscA.frequency.setValueAtTime(freq,start);
+    oscB.frequency.setValueAtTime(freq*2,start);
+    oscB.detune.setValueAtTime(-7,start);
+
+    lp.type='lowpass';
+    lp.frequency.value=720;
+    lp.Q.value=.4;
+
+    gain.gain.setValueAtTime(.0001,start);
+    gain.gain.linearRampToValueAtTime(volume,start+.18);
+    gain.gain.exponentialRampToValueAtTime(.0001,start+duration);
+
+    oscA.connect(gain);
+    oscB.connect(gain);
+    gain.connect(lp);
+    lp.connect(menuMusic.mix);
+
+    oscA.start(start);
+    oscB.start(start);
+    oscA.stop(start+duration+.05);
+    oscB.stop(start+duration+.05);
+  }
+
+  function playNoahMotif(){
+    if(!menuMusic||!save.sound) return;
+    const motif=[
+      [146.83,0,.0062],
+      [174.61,.92,.0054],
+      [138.59,1.84,.006]
+    ];
+    motif.forEach(([freq,delay,vol])=>playMenuNote(freq,3.1,vol,delay));
+  }
+
+  function playMenuSwell(){
+    if(!save.sound||!audioCtx||!musicBus||!menuMusic) return;
+
+    const now=audioCtx.currentTime;
+    const src=makeNoiseSource(false);
+    const bp=audioCtx.createBiquadFilter();
+    const gain=audioCtx.createGain();
+
+    bp.type='bandpass';
+    bp.frequency.value=470;
+    bp.Q.value=.65;
+
+    gain.gain.setValueAtTime(.0001,now);
+    gain.gain.exponentialRampToValueAtTime(.0055,now+.42);
+    gain.gain.exponentialRampToValueAtTime(.0001,now+.52);
+
+    src.connect(bp);
+    bp.connect(gain);
+    gain.connect(menuMusic.mix);
+
+    src.start(now);
+    src.stop(now+.58);
+  }
+
+  function scheduleMenuNotes(){
+    if(!menuMusic) return;
+
+    const delay=12000+Math.random()*13000;
+    const timer=setTimeout(()=>{
+      if(menuMusic&&save.sound){
+        const notes=[130.81,146.83,155.56,196.00];
+        const freq=notes[Math.floor(Math.random()*notes.length)];
+        playMenuNote(freq,2.8+Math.random()*1.7,.0045+Math.random()*.0018);
+      }
+      scheduleMenuNotes();
+    },delay);
+
+    menuMusicTimers.push(timer);
+  }
+
+  function scheduleNoahMotif(){
+    if(!menuMusic) return;
+
+    const delay=34000+Math.random()*22000;
+    menuMotifTimer=setTimeout(()=>{
+      if(menuMusic&&save.sound) playNoahMotif();
+      scheduleNoahMotif();
+    },delay);
+  }
+
+  function startMenuMusic(){
+    if(!save.sound||!ensureAudio()||menuMusic) return;
+
+    clearMenuMusicTimers();
+
+    const now=audioCtx.currentTime;
+    const mix=audioCtx.createGain();
+    const lp=audioCtx.createBiquadFilter();
+    const droneA=audioCtx.createOscillator();
+    const droneB=audioCtx.createOscillator();
+    const droneAGain=audioCtx.createGain();
+    const droneBGain=audioCtx.createGain();
+    const warble=audioCtx.createOscillator();
+    const warbleDepthA=audioCtx.createGain();
+    const warbleDepthB=audioCtx.createGain();
+
+    mix.gain.setValueAtTime(.0001,now);
+    mix.gain.linearRampToValueAtTime(1,now+3.2);
+
+    lp.type='lowpass';
+    lp.frequency.value=430;
+    lp.Q.value=.5;
+
+    droneA.type='sine';
+    droneA.frequency.value=65.41;
+    droneAGain.gain.value=.007;
+
+    droneB.type='triangle';
+    droneB.frequency.value=77.78;
+    droneBGain.gain.value=.0038;
+
+    warble.type='sine';
+    warble.frequency.value=.065;
+    warbleDepthA.gain.value=5.5;
+    warbleDepthB.gain.value=-4.2;
+
+    warble.connect(warbleDepthA);
+    warble.connect(warbleDepthB);
+    warbleDepthA.connect(droneA.detune);
+    warbleDepthB.connect(droneB.detune);
+
+    droneA.connect(droneAGain);
+    droneB.connect(droneBGain);
+    droneAGain.connect(lp);
+    droneBGain.connect(lp);
+    lp.connect(mix);
+    mix.connect(musicBus);
+
+    droneA.start(now);
+    droneB.start(now);
+    warble.start(now);
+
+    menuMusic={mix,sources:[droneA,droneB,warble]};
+
+    scheduleMenuNotes();
+    scheduleNoahMotif();
+  }
+
+  function stopMenuMusic(fade=.9){
+    if(!menuMusic||!audioCtx){
+      clearMenuMusicTimers();
+      return;
+    }
+
+    const current=menuMusic;
+    menuMusic=null;
+    clearMenuMusicTimers();
+
+    const now=audioCtx.currentTime;
+    current.mix.gain.cancelScheduledValues(now);
+    current.mix.gain.setValueAtTime(Math.max(.0001,current.mix.gain.value),now);
+    current.mix.gain.exponentialRampToValueAtTime(.0001,now+fade);
+
+    setTimeout(()=>current.sources.forEach(src=>safeStop(src)),Math.max(80,fade*1000+100));
+  }
+
   function stopStatic(fade=.06){
     if(!activeStatic||!audioCtx) return;
     const current=activeStatic;
@@ -1236,6 +1422,9 @@
     clearTitleGlitchAudio();
     const cycle=2400;
     const schedule=()=>{
+      titleGlitchTimers.push(setTimeout(()=>{
+        if($('home').classList.contains('active')&&Math.random()>.68) playMenuSwell();
+      },40));
       [225,1175].forEach(delay=>{
         titleGlitchTimers.push(setTimeout(()=>{
           if($('home').classList.contains('active')) playGlitchSound();
@@ -1266,11 +1455,13 @@
 
     if(id==='home'||id==='settings'){
       startMenuAmbience();
+      startMenuMusic();
       if(id==='home') startTitleGlitchAudio();
       else clearTitleGlitchAudio();
     }else{
       clearTitleGlitchAudio();
       stopMenuAmbience(id==='introStatic'?.28:.55);
+      stopMenuMusic(id==='introStatic'?.32:.7);
     }
   }
 
@@ -1300,6 +1491,7 @@
     clearIntroTimers();
     stopStatic(.03);
     stopMenuAmbience(.2);
+    stopMenuMusic(.25);
     clearTitleGlitchAudio();
 
     const tap=$('tapBeginBtn');
@@ -1358,6 +1550,7 @@
     save.progress=1;
     persist();
     stopMenuAmbience(.4);
+    stopMenuMusic(.55);
     clearTitleGlitchAudio();
 
     show('introStatic');
@@ -1379,6 +1572,7 @@
     buzz();
     playUIClick('continue');
     stopMenuAmbience(.35);
+    stopMenuMusic(.5);
     show('game');
   };
 
@@ -1410,9 +1604,13 @@
     buzz();
 
     const current=screens.find(s=>s.classList.contains('active'))?.id;
-    if(save.sound&&(current==='home'||current==='settings')) startMenuAmbience();
+    if(save.sound&&(current==='home'||current==='settings')){
+      startMenuAmbience();
+      startMenuMusic();
+    }
     if(!save.sound){
       stopMenuAmbience(.12);
+      stopMenuMusic(.16);
       stopStatic(.04);
       clearTitleGlitchAudio();
     }
