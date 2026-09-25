@@ -121,16 +121,164 @@
     .switch{width:50px;height:28px;border-radius:999px;background:#262626;position:relative;border:1px solid #383838}
     .switch:after{content:"";position:absolute;width:20px;height:20px;border-radius:50%;background:#7a746d;top:3px;left:4px;transition:.2s}
     .switch.on{background:#34302d}.switch.on:after{left:24px;background:#d6cec4}
-    #game{padding:0;flex-direction:column;justify-content:flex-end;background:linear-gradient(#060606,#0b0b0b 55%,#050505)}
-    .hall{position:absolute;inset:0;background:linear-gradient(90deg,rgba(0,0,0,.9),transparent 24%,transparent 76%,rgba(0,0,0,.9)),linear-gradient(180deg,#090909 0 22%,#171411 22% 70%,#080706 70%)}
-    .door{position:absolute;left:50%;top:26%;width:36%;height:45%;transform:translateX(-50%);border:2px solid #292521;background:linear-gradient(90deg,#0b0a09,#161310 50%,#0b0a09);box-shadow:0 0 70px #000,inset 0 0 30px #000}
-    .door:after{content:"";position:absolute;width:7px;height:7px;border-radius:50%;background:#827669;right:14%;top:50%;box-shadow:0 0 6px rgba(255,220,175,.2)}
-    .chapter{position:absolute;top:max(26px,env(safe-area-inset-top));left:0;right:0;text-align:center;text-transform:uppercase;letter-spacing:.34em;font:10px system-ui,sans-serif;color:#77716a}
-    .storybox{position:relative;z-index:3;margin:0 16px max(18px,env(safe-area-inset-bottom));padding:18px;background:rgba(7,7,7,.9);border:1px solid #252321;box-shadow:0 15px 45px #000}
-    .storybox p{font-size:16px;line-height:1.55;margin:0 0 16px;color:#d7d1ca}
-    .storybox button{width:100%;min-height:50px;background:#181614;border:1px solid #3c3732;text-transform:uppercase;letter-spacing:.18em;font-size:11px}
-    .game-actions{position:absolute;top:max(20px,env(safe-area-inset-top));right:16px;z-index:4}
-    .game-actions button{width:42px;height:42px;border:1px solid #2a2724;background:rgba(7,7,7,.7);color:#aaa;border-radius:50%}
+    /* v0.16 Prologue first-person hallway scaffold */
+    #game{
+      padding:0;
+      flex-direction:column;
+      justify-content:flex-end;
+      background:#020304;
+      overflow:hidden;
+      isolation:isolate
+    }
+    .prologue-scene{
+      position:absolute;
+      inset:-1.5%;
+      z-index:0;
+      background-image:
+        url('./assets/images/prologue-hallway-bg.jpg'),
+        radial-gradient(circle at 50% 34%,rgba(88,112,124,.14),transparent 24%),
+        linear-gradient(180deg,#0a0f13 0%,#080b0d 46%,#030405 100%);
+      background-size:cover,cover,cover;
+      background-position:center center,center,center;
+      background-repeat:no-repeat;
+      filter:brightness(.82) contrast(1.12) saturate(.72);
+      transform:scale(1.025);
+      animation:prologueCameraBreath 8s ease-in-out infinite alternate
+    }
+    .prologue-scene:before{
+      content:"";
+      position:absolute;
+      inset:0;
+      pointer-events:none;
+      background:
+        radial-gradient(ellipse at 50% 45%,transparent 0 46%,rgba(0,0,0,.16) 72%,rgba(0,0,0,.58) 100%),
+        linear-gradient(180deg,rgba(0,0,0,.28),transparent 25%,transparent 73%,rgba(0,0,0,.42));
+      box-shadow:inset 0 0 clamp(55px,10vw,170px) rgba(0,0,0,.58)
+    }
+    .prologue-scene:after{
+      content:"";
+      position:absolute;
+      inset:0;
+      pointer-events:none;
+      opacity:.14;
+      background:
+        linear-gradient(180deg,transparent 0 19%,rgba(188,212,220,.12) 19.5% 20.2%,transparent 20.7%),
+        repeating-linear-gradient(180deg,transparent 0 3px,rgba(255,255,255,.018) 4px,transparent 5px);
+      animation:hallLightFlicker 6.5s steps(1,end) infinite
+    }
+    @keyframes prologueCameraBreath{
+      from{transform:scale(1.025) translate3d(0,0,0)}
+      to{transform:scale(1.04) translate3d(0,-.4%,0)}
+    }
+    @keyframes hallLightFlicker{
+      0%,87%,100%{opacity:.14}
+      88%{opacity:.03}
+      89%{opacity:.22}
+      90%{opacity:.07}
+      91%{opacity:.16}
+    }
+    .chapter{
+      position:absolute;
+      z-index:4;
+      top:max(24px,env(safe-area-inset-top));
+      left:clamp(18px,4vw,48px);
+      right:auto;
+      text-align:left;
+      text-transform:uppercase;
+      letter-spacing:.32em;
+      font:10px system-ui,sans-serif;
+      color:rgba(210,216,218,.54);
+      text-shadow:0 2px 8px #000
+    }
+    .objective{
+      position:absolute;
+      z-index:4;
+      top:max(58px,calc(env(safe-area-inset-top) + 44px));
+      left:clamp(18px,4vw,48px);
+      font:600 clamp(11px,1.4vw,15px) system-ui,sans-serif;
+      letter-spacing:.22em;
+      text-transform:uppercase;
+      color:rgba(225,228,226,.88);
+      text-shadow:0 2px 10px #000
+    }
+    .objective:before{
+      content:"OBJECTIVE";
+      display:block;
+      margin-bottom:5px;
+      font-size:.66em;
+      letter-spacing:.28em;
+      color:#727a7d
+    }
+    .elevator-indicator{
+      position:absolute;
+      z-index:3;
+      left:50%;
+      top:31%;
+      transform:translateX(-50%);
+      padding:5px 10px;
+      border:1px solid rgba(129,35,35,.32);
+      background:rgba(7,4,4,.72);
+      color:#9d3838;
+      font:600 clamp(8px,1vw,11px) monospace;
+      letter-spacing:.14em;
+      text-shadow:0 0 8px rgba(130,0,0,.42);
+      opacity:.78
+    }
+    .storybox{
+      position:relative;
+      z-index:5;
+      margin:0 auto max(18px,env(safe-area-inset-bottom));
+      width:min(92vw,680px);
+      padding:14px 16px;
+      background:linear-gradient(180deg,rgba(5,7,8,.66),rgba(3,4,5,.84));
+      border:1px solid rgba(132,142,146,.16);
+      box-shadow:0 14px 34px rgba(0,0,0,.48);
+      backdrop-filter:blur(5px)
+    }
+    .storybox p{
+      font-size:clamp(13px,2vw,16px);
+      line-height:1.5;
+      margin:0 0 12px;
+      color:#d4d7d6
+    }
+    .storybox button{
+      width:100%;
+      min-height:46px;
+      background:rgba(18,20,21,.74);
+      border:1px solid rgba(126,134,137,.22);
+      color:#d7d9d8;
+      text-transform:uppercase;
+      letter-spacing:.18em;
+      font-size:10px
+    }
+    .game-actions{
+      position:absolute;
+      top:max(18px,env(safe-area-inset-top));
+      right:16px;
+      z-index:6
+    }
+    .game-actions button{
+      width:42px;
+      height:42px;
+      border:1px solid rgba(125,132,135,.18);
+      background:rgba(4,6,7,.56);
+      color:#9aa0a1;
+      border-radius:50%;
+      backdrop-filter:blur(4px)
+    }
+    @media (orientation:portrait){
+      .prologue-scene{background-position:center center}
+      .elevator-indicator{top:28%}
+      .storybox{width:90vw}
+    }
+    @media (orientation:landscape) and (max-height:600px){
+      .prologue-scene{background-position:center 47%}
+      .chapter{top:max(14px,env(safe-area-inset-top))}
+      .objective{top:max(43px,calc(env(safe-area-inset-top) + 30px))}
+      .storybox{width:min(72vw,720px);padding:10px 14px}
+      .storybox p{font-size:12px;margin-bottom:9px}
+      .storybox button{min-height:38px}
+    }
     .toast{position:absolute;z-index:8;left:50%;bottom:26px;transform:translate(-50%,20px);padding:10px 14px;background:#161616;border:1px solid #2b2b2b;border-radius:3px;font:12px system-ui,sans-serif;color:#ccc;opacity:0;transition:.2s;pointer-events:none;white-space:nowrap}.toast.show{opacity:1;transform:translate(-50%,0)}
   
     /* v0.7 responsive cinematic main menu */
@@ -969,12 +1117,14 @@
     </div>
   </section>
   <section id="game" class="screen">
-    <div class="hall"><div class="door"></div></div>
-    <div class="chapter">Chapter I • The Door</div>
-    <div class="game-actions"><button id="homeBtn">⌂</button></div>
+    <div class="prologue-scene"></div>
+    <div class="chapter">Prologue • Wake Up</div>
+    <div class="objective">Find an exit</div>
+    <div class="elevator-indicator">FLOOR — H</div>
+    <div class="game-actions"><button id="homeBtn" aria-label="Return to menu">⌂</button></div>
     <div class="storybox">
-      <p id="storyText">You wake to the sound of three knocks. The hallway outside your room is empty, but the door at the far end is open now.</p>
-      <button id="nextBtn">Approach the door</button>
+      <p id="storyText">The fluorescent light stutters overhead. Rain echoes somewhere beyond the walls, but every window opens onto darkness.</p>
+      <button id="nextBtn">Look down the hallway</button>
     </div>
   </section>
   <div id="toast" class="toast">Saved</div>
@@ -1638,9 +1788,9 @@
   };
 
   const scenes=[
-    ['You wake to the sound of three knocks. The hallway outside your room is empty, but the door at the far end is open now.','Approach the door'],
-    ['The floorboards bend under your weight. Something moves behind the door, then goes quiet.','Reach for the handle'],
-    ['The handle is cold. A whisper comes from the other side: “You took long enough.”','End demo']
+    ['The fluorescent light stutters overhead. Rain echoes somewhere beyond the walls, but every window opens onto darkness.','Look down the hallway'],
+    ['A dead elevator waits at the far end. Its display is still lit: FLOOR — H.','Walk toward the elevator'],
+    ['Your phone vibrates once in your pocket. There is no signal, but one unread message remains.','Check the phone']
   ];
 
   let i=0;
