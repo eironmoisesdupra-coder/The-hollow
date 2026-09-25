@@ -28,6 +28,55 @@
     @keyframes fadeOut{to{opacity:0;transform:scale(1.02)}}
     @keyframes fadeIn{from{opacity:0}to{opacity:1}}
     #introStudio,#introWarning,#introLoading{background:#000;padding:0;align-items:center;justify-content:center;animation:fadeIn .45s ease}
+    #prologueTitle{
+      padding:0;
+      align-items:center;
+      justify-content:center;
+      background:#000;
+      overflow:hidden
+    }
+    .prologue-title-wrap{
+      position:relative;
+      width:100%;
+      text-align:center;
+      padding:24px;
+      transform:translateY(-2vh)
+    }
+    .prologue-type{
+      display:inline-block;
+      min-height:1.2em;
+      color:#d5d4d0;
+      font-family:Georgia,'Times New Roman',serif;
+      font-size:clamp(24px,5.2vw,54px);
+      font-weight:400;
+      letter-spacing:.18em;
+      text-transform:uppercase;
+      text-shadow:
+        0 2px 18px rgba(0,0,0,.9),
+        0 0 18px rgba(255,255,255,.025)
+    }
+    .prologue-cursor{
+      display:inline-block;
+      width:1px;
+      height:1em;
+      margin-left:.15em;
+      vertical-align:-.08em;
+      background:#898985;
+      opacity:.7;
+      animation:prologueCursorBlink .72s steps(1,end) infinite
+    }
+    #prologueTitle.fade-slow{
+      animation:prologueTitleFade 1.85s ease-in-out forwards
+    }
+    @keyframes prologueCursorBlink{
+      0%,48%{opacity:.7}
+      49%,100%{opacity:.05}
+    }
+    @keyframes prologueTitleFade{
+      0%{opacity:1;filter:blur(0)}
+      55%{opacity:.58;filter:blur(.8px)}
+      100%{opacity:0;filter:blur(3px)}
+    }
     .intro-panel{width:100%;height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:20px}
     .intro-top{font-family:system-ui,sans-serif;font-weight:800;font-size:clamp(24px,8vw,38px);letter-spacing:.01em;color:#fff;margin-bottom:140px}
     .intro-present{font-family:system-ui,sans-serif;font-size:11px;color:#a0a0a0;margin-bottom:8px}
@@ -141,7 +190,7 @@
       background-size:cover,cover,cover;
       background-position:center center,center,center;
       background-repeat:no-repeat;
-      filter:brightness(.82) contrast(1.12) saturate(.72);
+      filter:brightness(.75) contrast(1.17) saturate(.68);
       transform:scale(1.025);
       animation:prologueCameraBreath 8s ease-in-out infinite alternate
     }
@@ -191,6 +240,17 @@
     }
     #game.three-active .game3d{opacity:1}
     #game.three-active .prologue-scene{opacity:0}
+    #game.three-active:after{
+      content:"";
+      position:absolute;
+      inset:0;
+      z-index:2;
+      pointer-events:none;
+      background:
+        radial-gradient(ellipse at 50% 48%,transparent 0 45%,rgba(0,0,0,.08) 72%,rgba(0,0,0,.42) 100%),
+        linear-gradient(180deg,rgba(0,0,0,.18),transparent 20%,transparent 76%,rgba(0,0,0,.24));
+      box-shadow:inset 0 0 clamp(40px,8vw,120px) rgba(0,0,0,.38)
+    }
     .prologue-scene{transition:opacity .45s ease}
     .move-pad{
       position:absolute;
@@ -1285,7 +1345,7 @@
     @media (prefers-reduced-motion:reduce){
       .loading-fog,.loading-scanlines:after,.glitch-title,.glitch-title:before,.glitch-title:after,.glitch-progress-fill,.glitch-dust,
       .menu-title-hollow,.menu-title-hollow:before,.menu-title-hollow:after,
-      .tv-static:before,.tv-static:after,.tv-static-band,.tap-begin{
+      .tv-static:before,.tv-static:after,.tv-static-band,.tap-begin,.prologue-cursor{
         animation:none!important
       }
     }
@@ -1370,6 +1430,12 @@
       <div class="setting-row"><span>Reset progress</span><button id="resetBtn" style="background:none;border:0;color:#b7aea5">RESET</button></div>
     </div>
   </section>
+  <section id="prologueTitle" class="screen">
+    <div class="prologue-title-wrap">
+      <span id="prologueType" class="prologue-type"></span><span class="prologue-cursor" aria-hidden="true"></span>
+    </div>
+  </section>
+
   <section id="game" class="screen">
     <div class="prologue-scene"></div>
     <canvas id="game3d" class="game3d" aria-label="3D Hollow House hallway"></canvas>
@@ -1453,6 +1519,7 @@
   let introTimers=[];
   let introArmed=false;
   let phoneMessageRead=false;
+  let prologueTitleTimers=[];
 
   let threeGame=null;
   let threeRunning=false;
@@ -1977,14 +2044,16 @@
       powerPreference:'high-performance'
     });
     renderer.setPixelRatio(Math.min(window.devicePixelRatio||1,1.5));
-    renderer.setClearColor(0x020304,1);
+    renderer.setClearColor(0x010203,1);
+    renderer.shadowMap.enabled=true;
+    renderer.shadowMap.type=THREE.PCFSoftShadowMap;
     renderer.outputEncoding=THREE.sRGBEncoding;
     renderer.toneMapping=THREE.ACESFilmicToneMapping;
     renderer.toneMappingExposure=.72;
 
     const scene=new THREE.Scene();
-    scene.background=new THREE.Color(0x030506);
-    scene.fog=new THREE.FogExp2(0x05080a,.034);
+    scene.background=new THREE.Color(0x010203);
+    scene.fog=new THREE.FogExp2(0x040608,.041);
 
     const camera=new THREE.PerspectiveCamera(68,1,.05,80);
     camera.position.set(0,1.65,7.2);
@@ -2023,6 +2092,7 @@
     });
 
     const floor=new THREE.Mesh(new THREE.PlaneGeometry(8,40),floorMat);
+    floor.receiveShadow=true;
     floor.rotation.x=-Math.PI/2;
     floor.position.set(0,0,-11.5);
     scene.add(floor);
@@ -2047,6 +2117,8 @@
     doorPositions.forEach((z,index)=>{
       [-1,1].forEach(side=>{
         const door=new THREE.Mesh(new THREE.BoxGeometry(.18,2.85,1.6),doorMat);
+        door.castShadow=true;
+        door.receiveShadow=true;
         door.position.set(side*3.88,1.48,z);
         scene.add(door);
 
@@ -2123,8 +2195,13 @@
       panel.position.set(0,3.93,z);
       scene.add(panel);
 
-      const light=new THREE.PointLight(0xa7c6d2,index===1?.65:.95,11,2);
+      const light=new THREE.PointLight(0xa7c6d2,index===1?.58:.9,11,2);
       light.position.set(0,3.55,z);
+      if(index===1){
+        light.castShadow=true;
+        light.shadow.mapSize.set(512,512);
+        light.shadow.bias=-.002;
+      }
       scene.add(light);
       ceilingLights.push({light,panel,index});
     });
@@ -2146,46 +2223,331 @@
       scene.add(puddle);
     }
 
+    // Spooky environmental detail layer: pipes, cables, stains, debris, dust, emergency light.
+    const detailDark=new THREE.MeshStandardMaterial({color:0x111416,roughness:.88,metalness:.22});
+    const rustMat=new THREE.MeshStandardMaterial({color:0x2a1e19,roughness:.94,metalness:.12});
+    const blackMat=new THREE.MeshStandardMaterial({color:0x050607,roughness:1});
+    const debrisMat=new THREE.MeshStandardMaterial({color:0x25211f,roughness:.98});
+    const dampMat=new THREE.MeshBasicMaterial({color:0x050708,transparent:true,opacity:.34,depthWrite:false});
+
+    function addPipe(x,y,zCenter,length,r=.055,mat=detailDark){
+      const pipe=new THREE.Mesh(new THREE.CylinderGeometry(r,r,length,10),mat);
+      pipe.rotation.x=Math.PI/2;
+      pipe.position.set(x,y,zCenter);
+      pipe.castShadow=true;
+      scene.add(pipe);
+      return pipe;
+    }
+
+    addPipe(-3.62,3.55,-11.5,36,.065,rustMat);
+    addPipe(-3.42,3.72,-12.5,31,.04,detailDark);
+    addPipe(3.58,3.42,-13,33,.055,detailDark);
+
+    [-3.55,-12.4,-21.2].forEach(z=>{
+      const cross=new THREE.Mesh(new THREE.CylinderGeometry(.05,.05,6.8,10),rustMat);
+      cross.rotation.z=Math.PI/2;
+      cross.position.set(0,3.68,z);
+      cross.castShadow=true;
+      scene.add(cross);
+    });
+
+    const cableMat=new THREE.MeshStandardMaterial({color:0x030405,roughness:.85,metalness:.12});
+    [
+      [[-3.1,3.78,-2],[-2.4,3.12,-5],[-3.0,3.62,-9]],
+      [[2.85,3.84,-10],[2.2,3.08,-14],[3.1,3.65,-18]],
+      [[-1.1,3.9,-19],[-.45,3.0,-21],[.3,3.86,-24]]
+    ].forEach(points=>{
+      const curve=new THREE.CatmullRomCurve3(points.map(p=>new THREE.Vector3(...p)));
+      const cable=new THREE.Mesh(new THREE.TubeGeometry(curve,18,.025,6,false),cableMat);
+      cable.castShadow=true;
+      scene.add(cable);
+    });
+
+    // Water-damage patches along both walls.
+    for(let i=0;i<18;i++){
+      const side=i%2===0?-1:1;
+      const stain=new THREE.Mesh(
+        new THREE.PlaneGeometry(.45+Math.random()*1.15,.55+Math.random()*1.8),
+        dampMat.clone()
+      );
+      stain.material.opacity=.16+Math.random()*.25;
+      stain.position.set(side*3.875,.7+Math.random()*2.45,5-Math.random()*34);
+      stain.rotation.y=side>0?-Math.PI/2:Math.PI/2;
+      stain.rotation.z=(Math.random()-.5)*.18;
+      scene.add(stain);
+    }
+
+    // Random broken ceiling panels.
+    [-8.5,-17.5,-27].forEach((z,index)=>{
+      const broken=new THREE.Mesh(
+        new THREE.BoxGeometry(.74,.035,1.15),
+        new THREE.MeshStandardMaterial({
+          color:index===1?0x16191a:0x3c4446,
+          emissive:index===1?0x000000:0x172329,
+          emissiveIntensity:index===1?0:.18,
+          roughness:.9
+        })
+      );
+      broken.position.set((index-1)*.3,3.89,z);
+      broken.rotation.z=(index-1)*.12;
+      broken.rotation.x=.05*(index+1);
+      scene.add(broken);
+    });
+
+    // Crates, boards, papers and abandoned clutter.
+    for(let i=0;i<16;i++){
+      const crate=new THREE.Mesh(
+        new THREE.BoxGeometry(.25+Math.random()*.45,.15+Math.random()*.35,.25+Math.random()*.6),
+        i%3===0?rustMat:debrisMat
+      );
+      const side=i%2===0?-1:1;
+      crate.position.set(side*(2.45+Math.random()*.95),crate.geometry.parameters.height/2,4-Math.random()*31);
+      crate.rotation.y=Math.random()*Math.PI;
+      crate.rotation.z=(Math.random()-.5)*.15;
+      crate.castShadow=true;
+      scene.add(crate);
+    }
+
+    for(let i=0;i<22;i++){
+      const paper=new THREE.Mesh(
+        new THREE.PlaneGeometry(.16+Math.random()*.25,.2+Math.random()*.32),
+        new THREE.MeshStandardMaterial({color:0x4f504b,roughness:1,side:THREE.DoubleSide})
+      );
+      paper.rotation.x=-Math.PI/2+(Math.random()-.5)*.15;
+      paper.rotation.z=Math.random()*Math.PI;
+      paper.position.set((Math.random()-.5)*6.1,.018,5-Math.random()*34);
+      scene.add(paper);
+    }
+
+    // Old radiator near the starting section.
+    const radiator=new THREE.Group();
+    for(let i=0;i<7;i++){
+      const rib=new THREE.Mesh(new THREE.BoxGeometry(.09,.85,.11),detailDark);
+      rib.position.x=(i-3)*.12;
+      rib.castShadow=true;
+      radiator.add(rib);
+    }
+    radiator.position.set(-3.45,.58,1.1);
+    radiator.rotation.y=.08;
+    scene.add(radiator);
+
+    // Crooked abandoned chair silhouette.
+    const chair=new THREE.Group();
+    const chairSeat=new THREE.Mesh(new THREE.BoxGeometry(.52,.08,.52),debrisMat);
+    chairSeat.position.y=.58;
+    chair.add(chairSeat);
+    const chairBack=new THREE.Mesh(new THREE.BoxGeometry(.52,.7,.07),debrisMat);
+    chairBack.position.set(0,.92,.23);
+    chairBack.rotation.x=-.08;
+    chair.add(chairBack);
+    [[-.21,.28,-.2],[.21,.28,-.2],[-.21,.28,.2],[.21,.28,.2]].forEach(p=>{
+      const leg=new THREE.Mesh(new THREE.BoxGeometry(.055,.55,.055),detailDark);
+      leg.position.set(...p);
+      chair.add(leg);
+    });
+    chair.position.set(2.85,0,-10.7);
+    chair.rotation.set(.08,-.45,.2);
+    scene.add(chair);
+
+    // Weak emergency lamp: subtle story-language red, not a chase light.
+    const emergencyFixture=new THREE.Mesh(
+      new THREE.BoxGeometry(.18,.38,.12),
+      new THREE.MeshStandardMaterial({color:0x261416,emissive:0x6a0d13,emissiveIntensity:.7,roughness:.6})
+    );
+    emergencyFixture.position.set(3.82,2.72,-18.2);
+    scene.add(emergencyFixture);
+    const emergencyLight=new THREE.PointLight(0x8b1720,.28,5.5,2);
+    emergencyLight.position.set(3.45,2.6,-18.2);
+    scene.add(emergencyLight);
+
+    // Very faint dark recess behind a damaged section of wall.
+    const recess=new THREE.Mesh(
+      new THREE.PlaneGeometry(1.4,2.55),
+      new THREE.MeshBasicMaterial({color:0x000000,transparent:true,opacity:.72})
+    );
+    recess.position.set(-3.865,1.45,-17.6);
+    recess.rotation.y=Math.PI/2;
+    scene.add(recess);
+
+    // Suspended dust/mist particles.
+    const dustCount=260;
+    const dustPositions=new Float32Array(dustCount*3);
+    for(let i=0;i<dustCount;i++){
+      dustPositions[i*3]=(Math.random()-.5)*7.1;
+      dustPositions[i*3+1]=.2+Math.random()*3.55;
+      dustPositions[i*3+2]=7-Math.random()*38;
+    }
+    const dustGeo=new THREE.BufferGeometry();
+    dustGeo.setAttribute('position',new THREE.BufferAttribute(dustPositions,3));
+    const dustPoints=new THREE.Points(
+      dustGeo,
+      new THREE.PointsMaterial({
+        color:0x9babb0,
+        size:.018,
+        transparent:true,
+        opacity:.18,
+        depthWrite:false,
+        blending:THREE.AdditiveBlending
+      })
+    );
+    scene.add(dustPoints);
+
     const phoneRig=new THREE.Group();
     phoneRig.visible=true;
     camera.add(phoneRig);
 
-    const sleeveMat=new THREE.MeshStandardMaterial({color:0x151719,roughness:.9});
-    const handMat=new THREE.MeshStandardMaterial({color:0x6a5549,roughness:.92});
-    const phoneMat=new THREE.MeshStandardMaterial({color:0x0a0c0d,roughness:.32,metalness:.45});
+    const sleeveMat=new THREE.MeshStandardMaterial({
+      color:0x111416,
+      roughness:.94,
+      metalness:.01
+    });
+    const cuffMat=new THREE.MeshStandardMaterial({
+      color:0x1c2022,
+      roughness:.82,
+      metalness:.04
+    });
+    const skinMat=new THREE.MeshStandardMaterial({
+      color:0x7a5b4c,
+      roughness:.78,
+      metalness:0
+    });
+    const skinDarkMat=new THREE.MeshStandardMaterial({
+      color:0x5f443a,
+      roughness:.82,
+      metalness:0
+    });
+    const phoneMat=new THREE.MeshStandardMaterial({
+      color:0x090b0c,
+      roughness:.28,
+      metalness:.5
+    });
     const screenMat=new THREE.MeshStandardMaterial({
-      color:0x1a252a,
-      emissive:0x29404a,
-      emissiveIntensity:.55,
-      roughness:.2
+      color:0x172328,
+      emissive:0x2b4650,
+      emissiveIntensity:.72,
+      roughness:.16
     });
 
-    const forearm=new THREE.Mesh(new THREE.CylinderGeometry(.11,.17,.78,10),sleeveMat);
-    forearm.rotation.z=-.34;
-    forearm.position.set(.26,-.34,.08);
-    phoneRig.add(forearm);
+    function makeLimb(rTop,rBottom,length,material,segments=14){
+      const mesh=new THREE.Mesh(new THREE.CylinderGeometry(rTop,rBottom,length,segments),material);
+      mesh.castShadow=true;
+      return mesh;
+    }
 
-    const hand=new THREE.Mesh(new THREE.BoxGeometry(.28,.38,.18),handMat);
-    hand.position.set(.12,.08,-.06);
-    hand.rotation.z=-.18;
-    phoneRig.add(hand);
+    // Right arm: upper sleeve -> elbow -> forearm -> wrist -> palm.
+    const rightArm=new THREE.Group();
+    const upperRight=makeLimb(.18,.145,.78,sleeveMat);
+    upperRight.position.set(.42,-.68,.12);
+    upperRight.rotation.z=-.58;
+    rightArm.add(upperRight);
 
-    const phone=new THREE.Mesh(new THREE.BoxGeometry(.46,.82,.065),phoneMat);
-    phone.position.set(0,.48,-.14);
+    const elbowRight=new THREE.Mesh(new THREE.SphereGeometry(.145,14,10),sleeveMat);
+    elbowRight.scale.set(1,.9,1);
+    elbowRight.position.set(.2,-.38,.03);
+    elbowRight.castShadow=true;
+    rightArm.add(elbowRight);
+
+    const forearmRight=makeLimb(.13,.095,.72,skinMat);
+    forearmRight.position.set(.09,-.08,-.02);
+    forearmRight.rotation.z=-.26;
+    rightArm.add(forearmRight);
+
+    const cuffRight=makeLimb(.145,.13,.15,cuffMat);
+    cuffRight.position.set(.18,-.37,.02);
+    cuffRight.rotation.z=-.26;
+    rightArm.add(cuffRight);
+
+    const wristRight=makeLimb(.085,.075,.18,skinMat);
+    wristRight.position.set(.015,.27,-.05);
+    wristRight.rotation.z=-.22;
+    rightArm.add(wristRight);
+
+    const palmRight=new THREE.Mesh(new THREE.SphereGeometry(.17,16,11),skinMat);
+    palmRight.scale.set(.9,1.25,.5);
+    palmRight.position.set(-.015,.41,-.08);
+    palmRight.rotation.z=-.16;
+    palmRight.castShadow=true;
+    rightArm.add(palmRight);
+
+    // Right fingers wrapping the right edge of the phone.
+    const fingerXs=[.16,.13,.10,.07];
+    fingerXs.forEach((x,index)=>{
+      const finger=makeLimb(.033,.027,.28-index*.018,index===3?skinDarkMat:skinMat,10);
+      finger.position.set(.19-index*.012,.52-index*.055,-.18);
+      finger.rotation.z=-.08-index*.035;
+      finger.rotation.x=.18;
+      rightArm.add(finger);
+    });
+    const rightThumb=makeLimb(.038,.03,.28,skinMat,10);
+    rightThumb.position.set(-.12,.47,-.2);
+    rightThumb.rotation.z=-1.02;
+    rightThumb.rotation.x=.18;
+    rightArm.add(rightThumb);
+    phoneRig.add(rightArm);
+
+    // Left supporting arm entering naturally from the lower-left.
+    const leftArm=new THREE.Group();
+    const upperLeft=makeLimb(.18,.145,.78,sleeveMat);
+    upperLeft.position.set(-.46,-.72,.16);
+    upperLeft.rotation.z=.6;
+    leftArm.add(upperLeft);
+
+    const elbowLeft=new THREE.Mesh(new THREE.SphereGeometry(.145,14,10),sleeveMat);
+    elbowLeft.position.set(-.2,-.4,.05);
+    elbowLeft.castShadow=true;
+    leftArm.add(elbowLeft);
+
+    const cuffLeft=makeLimb(.145,.13,.15,cuffMat);
+    cuffLeft.position.set(-.2,-.34,.02);
+    cuffLeft.rotation.z=.28;
+    leftArm.add(cuffLeft);
+
+    const forearmLeft=makeLimb(.13,.092,.68,skinMat);
+    forearmLeft.position.set(-.08,-.08,-.03);
+    forearmLeft.rotation.z=.28;
+    leftArm.add(forearmLeft);
+
+    const palmLeft=new THREE.Mesh(new THREE.SphereGeometry(.16,16,11),skinMat);
+    palmLeft.scale.set(.86,1.16,.48);
+    palmLeft.position.set(.015,.4,-.08);
+    palmLeft.rotation.z=.18;
+    palmLeft.castShadow=true;
+    leftArm.add(palmLeft);
+
+    const leftThumb=makeLimb(.036,.028,.25,skinMat,10);
+    leftThumb.position.set(.11,.49,-.18);
+    leftThumb.rotation.z=.92;
+    leftThumb.rotation.x=.18;
+    leftArm.add(leftThumb);
+    phoneRig.add(leftArm);
+
+    // Phone held between both hands.
+    const phone=new THREE.Mesh(new THREE.BoxGeometry(.46,.82,.07),phoneMat);
+    phone.position.set(0,.5,-.2);
     phone.rotation.x=-.08;
-    phone.rotation.z=.03;
+    phone.rotation.z=.02;
+    phone.castShadow=true;
     phoneRig.add(phone);
 
     const phoneScreen=new THREE.Mesh(new THREE.PlaneGeometry(.38,.67),screenMat);
-    phoneScreen.position.set(0,.49,-.177);
+    phoneScreen.position.set(0,.5,-.237);
     phoneScreen.rotation.y=Math.PI;
     phoneRig.add(phoneScreen);
 
-    phoneRig.position.set(.46,-1.65,-1.05);
-    phoneRig.rotation.set(-.2,-.28,.12);
+    // Tiny top speaker/camera detail.
+    const phoneSpeaker=new THREE.Mesh(
+      new THREE.BoxGeometry(.12,.018,.006),
+      new THREE.MeshBasicMaterial({color:0x050607})
+    );
+    phoneSpeaker.position.set(0,.78,-.242);
+    phoneSpeaker.rotation.y=Math.PI;
+    phoneRig.add(phoneSpeaker);
+
+    phoneRig.position.set(.46,-1.78,-1.12);
+    phoneRig.rotation.set(-.16,-.2,.08);
 
     threeGame={
-      renderer,scene,camera,ceilingLights,phoneRig,
+      renderer,scene,camera,ceilingLights,phoneRig,dustPoints,emergencyLight,
       lastTime:performance.now(),
       raf:0,
       baseY:1.65,
@@ -2308,16 +2670,26 @@
     const t=Math.max(0,Math.min(1,phoneRigAmount));
     const eased=t*t*(3-2*t);
     if(g.phoneRig){
+      const handBreath=eased>0.7?Math.sin(now*.0028)*.008:0;
       g.phoneRig.position.set(
-        .46-.28*eased,
-        -1.65+1.34*eased,
-        -1.05-.18*eased
+        .46-.30*eased+handBreath,
+        -1.78+1.46*eased+Math.sin(now*.0031)*.004*eased,
+        -1.12-.20*eased
       );
       g.phoneRig.rotation.set(
-        -.2+.12*eased,
-        -.28+.22*eased,
-        .12-.08*eased
+        -.16+.10*eased,
+        -.20+.16*eased,
+        .08-.055*eased+Math.sin(now*.0024)*.004*eased
       );
+    }
+
+    if(g.dustPoints){
+      g.dustPoints.rotation.y=Math.sin(now*.00008)*.015;
+      g.dustPoints.position.y=Math.sin(now*.00055)*.035;
+    }
+    if(g.emergencyLight){
+      const pulse=.22+.07*Math.sin(now*.0017)+.025*Math.sin(now*.012);
+      g.emergencyLight.intensity=Math.max(.08,pulse);
     }
 
     const flicker=Math.sin(now*.013)+Math.sin(now*.037)*.35;
@@ -2369,7 +2741,7 @@
   };
 
   function show(id){
-    screens.forEach(s=>s.classList.remove('active','fade-out'));
+    screens.forEach(s=>s.classList.remove('active','fade-out','fade-slow'));
     $(id).classList.add('active');
 
     if(id==='game') startThreeGame();
@@ -2464,6 +2836,48 @@
     },70);
   }
 
+  function clearPrologueTitleTimers(){
+    prologueTitleTimers.forEach(id=>{
+      clearTimeout(id);
+      clearInterval(id);
+    });
+    prologueTitleTimers=[];
+  }
+
+  function playPrologueTitle(){
+    clearPrologueTitleTimers();
+    show('prologueTitle');
+
+    const target='PROLOGUE : WAKE UP';
+    const el=$('prologueType');
+    el.textContent='';
+
+    let index=0;
+    const typing=setInterval(()=>{
+      if(index<target.length){
+        el.textContent+=target[index++];
+        if(save.sound&&index%3===0) playTone(92+Math.random()*18,.025,.004,'sine',84);
+      }else{
+        clearInterval(typing);
+
+        // Hold briefly, then use a deliberately slow cinematic fade into 3D.
+        const hold=setTimeout(()=>{
+          $('prologueTitle').classList.add('fade-slow');
+
+          const reveal=setTimeout(()=>{
+            show('game');
+            toast('Progress saved');
+          },1850);
+          prologueTitleTimers.push(reveal);
+        },1250);
+
+        prologueTitleTimers.push(hold);
+      }
+    },118);
+
+    prologueTitleTimers.push(typing);
+  }
+
   function startNewGame(){
     ensureAudio();
     buzz();
@@ -2474,14 +2888,14 @@
     stopMenuAmbience(.4);
     stopMenuMusic(.55);
     clearTitleGlitchAudio();
+    clearPrologueTitleTimers();
 
     show('introStatic');
     playStatic(2,.2);
 
     setTimeout(()=>{
       stopStatic(.04);
-      show('game');
-      toast('Progress saved');
+      playPrologueTitle();
     },2000);
   }
 
