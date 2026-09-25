@@ -1,4 +1,4 @@
-const CACHE='the-hollow-v4';
+const CACHE='the-hollow-v5';
 const ASSETS=['./manifest.webmanifest','./icon.svg'];
 
 self.addEventListener('install',event=>{
