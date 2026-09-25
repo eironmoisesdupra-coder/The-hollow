@@ -90,6 +90,61 @@
     .game-actions{position:absolute;top:max(20px,env(safe-area-inset-top));right:16px;z-index:4}
     .game-actions button{width:42px;height:42px;border:1px solid #2a2724;background:rgba(7,7,7,.7);color:#aaa;border-radius:50%}
     .toast{position:absolute;z-index:8;left:50%;bottom:26px;transform:translate(-50%,20px);padding:10px 14px;background:#161616;border:1px solid #2b2b2b;border-radius:3px;font:12px system-ui,sans-serif;color:#ccc;opacity:0;transition:.2s;pointer-events:none;white-space:nowrap}.toast.show{opacity:1;transform:translate(-50%,0)}
+  
+    /* v0.3 reference-style main menu + animated graveyard loading */
+    #home{padding:0;display:none;align-items:stretch;justify-content:stretch;text-align:left;background:#020304;overflow:hidden}
+    #home.active{display:flex}
+    .corridor-bg{position:absolute;inset:0;background:linear-gradient(180deg,#070a0c 0%,#050708 44%,#020303 100%);overflow:hidden}
+    .corridor-bg:after{content:"";position:absolute;inset:0;background:radial-gradient(ellipse at 50% 40%,transparent 0 20%,rgba(0,0,0,.18) 42%,rgba(0,0,0,.78) 100%),linear-gradient(90deg,rgba(0,0,0,.9),transparent 28%,transparent 72%,rgba(0,0,0,.9));pointer-events:none}
+    .corridor-ceiling{position:absolute;left:26%;right:26%;top:0;height:37%;background:linear-gradient(180deg,#151b1e,#0a0d0f 66%,#030405);clip-path:polygon(8% 0,92% 0,100% 100%,0 100%);filter:brightness(.7)}
+    .corridor-left{position:absolute;left:0;top:0;bottom:0;width:38%;background:linear-gradient(90deg,#050607,#111517 70%,#080a0b);clip-path:polygon(0 0,84% 0,100% 100%,0 100%);box-shadow:inset -35px 0 65px #000}
+    .corridor-right{position:absolute;right:0;top:0;bottom:0;width:38%;background:linear-gradient(270deg,#040506,#111416 70%,#080a0b);clip-path:polygon(16% 0,100% 0,100% 100%,0 100%);box-shadow:inset 35px 0 65px #000}
+    .corridor-floor{position:absolute;left:20%;right:20%;bottom:0;height:48%;background:linear-gradient(180deg,#111516 0%,#080a0b 42%,#020303 100%);clip-path:polygon(23% 0,77% 0,100% 100%,0 100%);box-shadow:inset 0 25px 50px rgba(255,255,255,.015)}
+    .corridor-floor:after{content:"";position:absolute;left:35%;right:35%;top:18%;bottom:0;background:linear-gradient(180deg,rgba(140,180,195,.12),transparent 75%);filter:blur(7px);transform:skewX(-4deg)}
+    .corridor-light{position:absolute;left:49%;top:9%;width:2.2%;height:13%;background:linear-gradient(#d7ebef,#4d656d);box-shadow:0 0 25px rgba(160,205,220,.32);transform:rotate(1deg)}
+    .corridor-window{position:absolute;left:48%;top:35%;width:4.5%;height:8%;background:#1c3038;border:2px solid #101619;box-shadow:0 0 18px rgba(80,145,165,.12)}
+    .corridor-end{position:absolute;left:43%;right:43%;top:29%;bottom:39%;background:linear-gradient(#07090a,#010202);box-shadow:0 0 50px #000}
+    .corridor-writing{position:absolute;z-index:2;font:700 clamp(14px,2.2vw,34px)/1.15 Arial,sans-serif;color:rgba(45,4,6,.34);letter-spacing:.02em;transform:rotate(-4deg);text-shadow:0 0 4px #000}
+    .left-writing{left:11%;top:23%}.right-writing{right:5%;top:43%;transform:rotate(5deg);color:rgba(65,8,10,.25)}
+    .menu-title{position:absolute;z-index:5;left:50%;top:43%;transform:translate(-50%,-50%);font-family:Georgia,'Times New Roman',serif;font-size:clamp(64px,16vw,210px);font-weight:900;letter-spacing:.035em;color:#d8d8d5;text-shadow:0 3px 0 #505050,0 7px 18px #000,5px 0 0 rgba(80,0,0,.17);filter:contrast(1.18);white-space:nowrap}
+    .menu-title:before{content:"";position:absolute;inset:0;background:repeating-linear-gradient(180deg,transparent 0 8px,rgba(0,0,0,.25) 9px 11px);mix-blend-mode:multiply;pointer-events:none}
+    .menu-title:after{content:"";position:absolute;left:4%;right:3%;bottom:-7px;height:11px;background:linear-gradient(90deg,transparent 0 2%,rgba(225,225,220,.5) 2% 3%,transparent 3% 12%,rgba(180,180,175,.5) 12% 13%,transparent 13% 29%,rgba(110,0,0,.4) 29% 30%,transparent 30% 65%,rgba(215,215,210,.42) 65% 66%,transparent);filter:blur(.5px)}
+    .menu-reference{position:absolute;z-index:6;left:7.5%;bottom:12%;width:min(280px,42vw);display:grid;gap:20px}
+    .menu-reference button{min-height:auto;padding:0;background:transparent!important;border:0!important;box-shadow:none!important;text-align:left;font-family:Georgia,'Times New Roman',serif;font-size:clamp(15px,2.15vw,27px);font-weight:400;letter-spacing:.42em;color:#dedede;text-shadow:0 2px 7px #000;opacity:.88}
+    .menu-reference button.primary{color:#fff}
+    .menu-reference button:active{transform:none;color:#fff;text-shadow:0 0 10px rgba(255,255,255,.35)}
+    .menu-reference button:disabled{opacity:.28}
+    #home .version{z-index:7;text-align:right;right:18px;left:auto;bottom:12px;color:#4b4b4b;font-size:9px}
+
+    #introLoading{padding:0;background:#010204}
+    .grave-loading{position:absolute;inset:0;overflow:hidden;background:linear-gradient(#020408 0%,#05090d 46%,#020304 100%)}
+    .grave-sky{position:absolute;inset:0 0 46%;background:radial-gradient(circle at 67% 18%,rgba(135,160,175,.11),transparent 23%),linear-gradient(#02050a,#071016 65%,#05080a)}
+    .grave-moon{position:absolute;right:13%;top:10%;width:clamp(70px,18vw,170px);aspect-ratio:1;border-radius:50%;background:radial-gradient(circle at 42% 38%,#d5dde0 0 5%,#9eabb0 30%,#6b767a 58%,#1b252b 72%,transparent 73%);box-shadow:0 0 38px rgba(148,181,195,.18);animation:moonPulse 4s ease-in-out infinite}
+    @keyframes moonPulse{50%{filter:brightness(.78);box-shadow:0 0 55px rgba(148,181,195,.24)}}
+    .grave-cloud{position:absolute;height:12%;width:55%;background:radial-gradient(ellipse at center,rgba(38,47,53,.78),rgba(9,13,16,.05) 70%);filter:blur(12px);animation:cloudMove 13s linear infinite}
+    .cloud-a{top:14%;left:-35%}.cloud-b{top:26%;left:-55%;animation-duration:18s;opacity:.55}
+    @keyframes cloudMove{to{transform:translateX(230%)}}
+    .grave-ground{position:absolute;left:-5%;right:-5%;bottom:-7%;height:58%;background:radial-gradient(ellipse at 50% 3%,rgba(45,55,57,.22),transparent 40%),linear-gradient(#071010,#030605 42%,#010202);clip-path:polygon(0 17%,8% 12%,16% 18%,25% 9%,38% 16%,48% 7%,60% 16%,71% 9%,83% 16%,92% 10%,100% 17%,100% 100%,0 100%)}
+    .grave{position:absolute;bottom:24%;width:9%;height:25%;background:linear-gradient(90deg,#090d0e,#171d1e 50%,#080b0c);border-radius:48% 48% 6% 6%;box-shadow:0 12px 20px #000}
+    .grave span{position:absolute;left:14%;right:14%;top:25%;height:2px;background:#262f30;box-shadow:0 9px 0 #1b2223}
+    .grave-1{left:9%;transform:rotate(-4deg);height:22%}.grave-2{left:28%;bottom:20%;transform:rotate(3deg);height:18%;width:8%}.grave-3{right:27%;bottom:21%;transform:rotate(-2deg);height:20%;width:8%}.grave-4{right:8%;height:27%;transform:rotate(4deg)}
+    .grave-cross{position:absolute;bottom:26%;width:6px;height:23%;background:#0b0f10;box-shadow:0 6px 14px #000}
+    .grave-cross:after{content:"";position:absolute;width:54px;height:6px;background:#0b0f10;left:50%;top:22%;transform:translateX(-50%)}
+    .cross-1{left:19%;transform:rotate(-5deg)}.cross-2{right:20%;transform:rotate(3deg) scale(.8);bottom:29%}
+    .grave-tree{position:absolute;bottom:31%;width:15px;height:45%;background:linear-gradient(90deg,#010202,#070a0b,#010202);transform-origin:bottom}
+    .grave-tree:before,.grave-tree:after{content:"";position:absolute;width:8px;height:65%;background:#030506;top:-29%;transform-origin:bottom}
+    .grave-tree:before{left:-20px;transform:rotate(-35deg)}.grave-tree:after{right:-22px;transform:rotate(38deg)}
+    .tree-left{left:5%;transform:rotate(-4deg)}.tree-right{right:6%;transform:rotate(5deg)}
+    .grave-fog{position:absolute;left:-30%;width:160%;height:22%;border-radius:50%;background:radial-gradient(ellipse at center,rgba(135,155,160,.18),rgba(55,70,75,.05) 48%,transparent 71%);filter:blur(16px);animation:graveFog 8s ease-in-out infinite alternate}
+    .fog-a{bottom:23%}.fog-b{bottom:6%;animation-duration:12s;animation-direction:alternate-reverse;opacity:.62}
+    @keyframes graveFog{to{transform:translateX(12%) scaleX(1.06)}}
+    .grave-loading-vignette{position:absolute;inset:0;box-shadow:inset 0 0 120px 55px #000;pointer-events:none}
+    .grave-hud{z-index:10;bottom:9%;padding:0 clamp(28px,8vw,92px)}
+    .grave-hud .asset-text{font-family:Georgia,'Times New Roman',serif;letter-spacing:.12em;color:#c5c7c5;text-shadow:0 2px 8px #000}
+    .grave-hud .progress-shell{height:9px;background:#060808;border:1px solid #242b2d}
+    .grave-hud .progress-fill{background:linear-gradient(90deg,#7f9198,#dce4e6);box-shadow:0 0 12px rgba(175,205,215,.35)}
+    .grave-hud .percent{font-family:Georgia,'Times New Roman',serif;font-size:25px;letter-spacing:.1em;color:#e5e5e3;text-shadow:0 2px 8px #000}
+
   </style>
 </head>
 <body>
@@ -110,33 +165,49 @@
     </div>
   </section>
   <section id="introLoading" class="screen">
-    <div class="loading-stage">
-      <div class="loading-frame">
-        <div class="loading-scene">
-          <div class="corridor">
-            <div class="ceiling"></div><div class="floor"></div><div class="wall-left"></div><div class="wall-right"></div><div class="end-door"></div><div class="lamp"></div><div class="machine"></div><div class="window"></div>
-          </div>
-        </div>
-        <div class="load-hud">
-          <div id="assetText" class="asset-text">Loading Assets: 1/2685</div>
-          <div class="progress-shell"><div id="progressFill" class="progress-fill"></div></div>
-          <div id="percentText" class="percent">1%</div>
-        </div>
+    <div class="grave-loading">
+      <div class="grave-sky"></div>
+      <div class="grave-moon"></div>
+      <div class="grave-cloud cloud-a"></div>
+      <div class="grave-cloud cloud-b"></div>
+      <div class="grave-tree tree-left"></div>
+      <div class="grave-tree tree-right"></div>
+      <div class="grave-ground"></div>
+      <div class="grave grave-1"><span></span></div>
+      <div class="grave grave-2"><span></span></div>
+      <div class="grave grave-3"><span></span></div>
+      <div class="grave grave-4"><span></span></div>
+      <div class="grave-cross cross-1"></div>
+      <div class="grave-cross cross-2"></div>
+      <div class="grave-fog fog-a"></div>
+      <div class="grave-fog fog-b"></div>
+      <div class="grave-loading-vignette"></div>
+      <div class="load-hud grave-hud">
+        <div id="assetText" class="asset-text">Loading Assets: 1/2685</div>
+        <div class="progress-shell"><div id="progressFill" class="progress-fill"></div></div>
+        <div id="percentText" class="percent">1%</div>
       </div>
     </div>
   </section>
   <section id="home" class="screen">
-    <div class="home-wrap">
-      <div class="eyebrow">A short horror experience</div>
-      <h1>The Hollow</h1>
-      <div class="subtitle">Some doors remember who opened them.</div>
-      <div class="menu">
-        <button class="primary" id="startBtn">Start Game</button>
-        <button id="continueBtn" disabled>Continue</button>
-        <button id="settingsBtn">Settings</button>
-      </div>
+    <div class="corridor-bg">
+      <div class="corridor-ceiling"></div>
+      <div class="corridor-left"></div>
+      <div class="corridor-right"></div>
+      <div class="corridor-floor"></div>
+      <div class="corridor-light"></div>
+      <div class="corridor-window"></div>
+      <div class="corridor-end"></div>
+      <div class="corridor-writing left-writing">IT<br>WATCHES<br>STILL</div>
+      <div class="corridor-writing right-writing">STILL<br>HERE?</div>
     </div>
-    <div class="version">OFFLINE STARTER • v0.2</div>
+    <div class="menu-title">HOLLOW</div>
+    <div class="menu menu-reference">
+      <button class="primary" id="startBtn">NEW GAME</button>
+      <button id="continueBtn" disabled>CONTINUE</button>
+      <button id="settingsBtn">SETTINGS</button>
+    </div>
+    <div class="version">THE HOLLOW • v0.3</div>
   </section>
   <section id="settings" class="screen panel-screen">
     <div class="topbar"><button class="back" id="backBtn">‹</button><h2>Settings</h2></div>
