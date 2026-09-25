@@ -91,30 +91,164 @@
     .game-actions button{width:42px;height:42px;border:1px solid #2a2724;background:rgba(7,7,7,.7);color:#aaa;border-radius:50%}
     .toast{position:absolute;z-index:8;left:50%;bottom:26px;transform:translate(-50%,20px);padding:10px 14px;background:#161616;border:1px solid #2b2b2b;border-radius:3px;font:12px system-ui,sans-serif;color:#ccc;opacity:0;transition:.2s;pointer-events:none;white-space:nowrap}.toast.show{opacity:1;transform:translate(-50%,0)}
   
-    /* v0.3 reference-style main menu + animated graveyard loading */
-    #home{padding:0;display:none;align-items:stretch;justify-content:stretch;text-align:left;background:#020304;overflow:hidden}
+    /* v0.4 cinematic image-based main menu */
+    #home{
+      padding:0;
+      display:none;
+      align-items:stretch;
+      justify-content:stretch;
+      text-align:left;
+      background:#010203;
+      overflow:hidden;
+      isolation:isolate
+    }
     #home.active{display:flex}
-    .corridor-bg{position:absolute;inset:0;background:linear-gradient(180deg,#070a0c 0%,#050708 44%,#020303 100%);overflow:hidden}
-    .corridor-bg:after{content:"";position:absolute;inset:0;background:radial-gradient(ellipse at 50% 40%,transparent 0 20%,rgba(0,0,0,.18) 42%,rgba(0,0,0,.78) 100%),linear-gradient(90deg,rgba(0,0,0,.9),transparent 28%,transparent 72%,rgba(0,0,0,.9));pointer-events:none}
-    .corridor-ceiling{position:absolute;left:26%;right:26%;top:0;height:37%;background:linear-gradient(180deg,#151b1e,#0a0d0f 66%,#030405);clip-path:polygon(8% 0,92% 0,100% 100%,0 100%);filter:brightness(.7)}
-    .corridor-left{position:absolute;left:0;top:0;bottom:0;width:38%;background:linear-gradient(90deg,#050607,#111517 70%,#080a0b);clip-path:polygon(0 0,84% 0,100% 100%,0 100%);box-shadow:inset -35px 0 65px #000}
-    .corridor-right{position:absolute;right:0;top:0;bottom:0;width:38%;background:linear-gradient(270deg,#040506,#111416 70%,#080a0b);clip-path:polygon(16% 0,100% 0,100% 100%,0 100%);box-shadow:inset 35px 0 65px #000}
-    .corridor-floor{position:absolute;left:20%;right:20%;bottom:0;height:48%;background:linear-gradient(180deg,#111516 0%,#080a0b 42%,#020303 100%);clip-path:polygon(23% 0,77% 0,100% 100%,0 100%);box-shadow:inset 0 25px 50px rgba(255,255,255,.015)}
-    .corridor-floor:after{content:"";position:absolute;left:35%;right:35%;top:18%;bottom:0;background:linear-gradient(180deg,rgba(140,180,195,.12),transparent 75%);filter:blur(7px);transform:skewX(-4deg)}
-    .corridor-light{position:absolute;left:49%;top:9%;width:2.2%;height:13%;background:linear-gradient(#d7ebef,#4d656d);box-shadow:0 0 25px rgba(160,205,220,.32);transform:rotate(1deg)}
-    .corridor-window{position:absolute;left:48%;top:35%;width:4.5%;height:8%;background:#1c3038;border:2px solid #101619;box-shadow:0 0 18px rgba(80,145,165,.12)}
-    .corridor-end{position:absolute;left:43%;right:43%;top:29%;bottom:39%;background:linear-gradient(#07090a,#010202);box-shadow:0 0 50px #000}
-    .corridor-writing{position:absolute;z-index:2;font:700 clamp(14px,2.2vw,34px)/1.15 Arial,sans-serif;color:rgba(45,4,6,.34);letter-spacing:.02em;transform:rotate(-4deg);text-shadow:0 0 4px #000}
-    .left-writing{left:11%;top:23%}.right-writing{right:5%;top:43%;transform:rotate(5deg);color:rgba(65,8,10,.25)}
-    .menu-title{position:absolute;z-index:5;left:50%;top:43%;transform:translate(-50%,-50%);font-family:Georgia,'Times New Roman',serif;font-size:clamp(64px,16vw,210px);font-weight:900;letter-spacing:.035em;color:#d8d8d5;text-shadow:0 3px 0 #505050,0 7px 18px #000,5px 0 0 rgba(80,0,0,.17);filter:contrast(1.18);white-space:nowrap}
-    .menu-title:before{content:"";position:absolute;inset:0;background:repeating-linear-gradient(180deg,transparent 0 8px,rgba(0,0,0,.25) 9px 11px);mix-blend-mode:multiply;pointer-events:none}
-    .menu-title:after{content:"";position:absolute;left:4%;right:3%;bottom:-7px;height:11px;background:linear-gradient(90deg,transparent 0 2%,rgba(225,225,220,.5) 2% 3%,transparent 3% 12%,rgba(180,180,175,.5) 12% 13%,transparent 13% 29%,rgba(110,0,0,.4) 29% 30%,transparent 30% 65%,rgba(215,215,210,.42) 65% 66%,transparent);filter:blur(.5px)}
-    .menu-reference{position:absolute;z-index:6;left:7.5%;bottom:12%;width:min(280px,42vw);display:grid;gap:20px}
-    .menu-reference button{min-height:auto;padding:0;background:transparent!important;border:0!important;box-shadow:none!important;text-align:left;font-family:Georgia,'Times New Roman',serif;font-size:clamp(15px,2.15vw,27px);font-weight:400;letter-spacing:.42em;color:#dedede;text-shadow:0 2px 7px #000;opacity:.88}
-    .menu-reference button.primary{color:#fff}
-    .menu-reference button:active{transform:none;color:#fff;text-shadow:0 0 10px rgba(255,255,255,.35)}
-    .menu-reference button:disabled{opacity:.28}
-    #home .version{z-index:7;text-align:right;right:18px;left:auto;bottom:12px;color:#4b4b4b;font-size:9px}
+    .corridor-bg{
+      position:absolute;
+      inset:0;
+      z-index:0;
+      background:
+        linear-gradient(180deg,rgba(0,0,0,.12),rgba(0,0,0,.34)),
+        url('assets/images/main-menu-bg.jpg') center center/cover no-repeat,
+        linear-gradient(180deg,#081015,#020304);
+      transform:scale(1.002)
+    }
+    .corridor-bg:after{
+      content:"";
+      position:absolute;
+      inset:0;
+      pointer-events:none;
+      background:
+        radial-gradient(ellipse at 50% 42%,transparent 0 28%,rgba(0,0,0,.14) 55%,rgba(0,0,0,.76) 100%),
+        linear-gradient(90deg,rgba(0,0,0,.60) 0%,rgba(0,0,0,.15) 28%,rgba(0,0,0,.08) 68%,rgba(0,0,0,.56) 100%);
+      box-shadow:inset 0 0 120px 30px rgba(0,0,0,.60)
+    }
+    .corridor-ceiling,.corridor-left,.corridor-right,.corridor-floor,.corridor-light,.corridor-window,.corridor-end,.corridor-writing{display:none}
+    .menu-title{
+      position:absolute;
+      z-index:5;
+      left:50%;
+      top:43%;
+      transform:translate(-50%,-50%);
+      margin:0;
+      width:min(92vw,1180px);
+      text-align:center;
+      font-family:Georgia,'Times New Roman',serif;
+      font-size:clamp(64px,12.5vw,190px);
+      font-weight:900;
+      line-height:.82;
+      letter-spacing:.055em;
+      color:#d8d8d5;
+      text-transform:uppercase;
+      white-space:nowrap;
+      text-shadow:
+        0 3px 0 rgba(45,45,45,.85),
+        0 8px 24px #000,
+        3px 0 0 rgba(70,0,0,.26);
+      filter:contrast(1.22) saturate(.82)
+    }
+    .menu-title .the{
+      display:inline-block;
+      margin-right:.16em;
+      font-size:.28em;
+      letter-spacing:.22em;
+      vertical-align:middle;
+      transform:translateY(-.18em);
+      opacity:.92
+    }
+    .menu-title:before{
+      content:"";
+      position:absolute;
+      inset:-8% -1%;
+      pointer-events:none;
+      opacity:.44;
+      mix-blend-mode:multiply;
+      background:
+        repeating-linear-gradient(176deg,transparent 0 10px,rgba(0,0,0,.30) 11px 13px),
+        repeating-linear-gradient(91deg,transparent 0 23px,rgba(30,0,0,.16) 24px 25px)
+    }
+    .menu-title:after{
+      content:"";
+      position:absolute;
+      left:5%;
+      right:4%;
+      bottom:-9px;
+      height:14px;
+      opacity:.72;
+      background:linear-gradient(90deg,transparent 0 3%,rgba(225,225,220,.5) 3% 4%,transparent 4% 15%,rgba(105,0,0,.5) 15% 16%,transparent 16% 37%,rgba(220,220,215,.44) 37% 38%,transparent 38% 71%,rgba(95,0,0,.55) 71% 72%,transparent);
+      filter:blur(.5px)
+    }
+    .menu-reference{
+      position:absolute;
+      z-index:6;
+      left:clamp(28px,7vw,120px);
+      bottom:clamp(54px,11vh,118px);
+      width:min(330px,62vw);
+      display:grid;
+      gap:clamp(14px,2.2vh,24px)
+    }
+    .menu-reference button{
+      min-height:auto;
+      padding:0;
+      background:transparent!important;
+      border:0!important;
+      box-shadow:none!important;
+      text-align:left;
+      font-family:Georgia,'Times New Roman',serif;
+      font-size:clamp(14px,1.7vw,25px);
+      font-weight:400;
+      letter-spacing:.42em;
+      color:#d9d9d9;
+      text-shadow:0 2px 9px #000,0 0 3px #000;
+      opacity:.84;
+      transition:opacity .18s ease,transform .18s ease,text-shadow .18s ease
+    }
+    .menu-reference button.primary{color:#fff;opacity:1}
+    .menu-reference button:active{
+      transform:translateX(4px);
+      color:#fff;
+      text-shadow:0 0 12px rgba(255,255,255,.26),0 2px 9px #000
+    }
+    .menu-reference button:disabled{opacity:.26}
+    #home .version{
+      z-index:7;
+      text-align:right;
+      right:14px;
+      left:auto;
+      bottom:10px;
+      color:#595959;
+      font-size:9px
+    }
+    @media (max-aspect-ratio:3/4){
+      .corridor-bg{
+        background-position:52% center;
+        background-size:cover
+      }
+      .corridor-bg:after{
+        background:
+          radial-gradient(ellipse at 52% 42%,transparent 0 24%,rgba(0,0,0,.20) 52%,rgba(0,0,0,.82) 100%),
+          linear-gradient(90deg,rgba(0,0,0,.55),rgba(0,0,0,.13) 60%,rgba(0,0,0,.45))
+      }
+      .menu-title{
+        top:39%;
+        width:96vw;
+        font-size:clamp(46px,15.5vw,98px);
+        letter-spacing:.035em
+      }
+      .menu-reference{
+        left:clamp(24px,7vw,44px);
+        bottom:max(72px,11vh);
+        width:76vw;
+        gap:18px
+      }
+      .menu-reference button{
+        font-size:clamp(14px,4.4vw,19px);
+        letter-spacing:.36em
+      }
+    }
+    @media (max-width:430px) and (min-aspect-ratio:3/4){
+      .menu-title{font-size:clamp(48px,14vw,78px)}
+    }
 
     #introLoading{padding:0;background:#010204}
     .grave-loading{position:absolute;inset:0;overflow:hidden;background:linear-gradient(#020408 0%,#05090d 46%,#020304 100%)}
@@ -201,13 +335,13 @@
       <div class="corridor-writing left-writing">IT<br>WATCHES<br>STILL</div>
       <div class="corridor-writing right-writing">STILL<br>HERE?</div>
     </div>
-    <div class="menu-title">HOLLOW</div>
+    <div class="menu-title"><span class="the">THE</span>HOLLOW</div>
     <div class="menu menu-reference">
       <button class="primary" id="startBtn">NEW GAME</button>
       <button id="continueBtn" disabled>CONTINUE</button>
       <button id="settingsBtn">SETTINGS</button>
     </div>
-    <div class="version">THE HOLLOW • v0.3</div>
+    <div class="version">THE HOLLOW • v0.4</div>
   </section>
   <section id="settings" class="screen panel-screen">
     <div class="topbar"><button class="back" id="backBtn">‹</button><h2>Settings</h2></div>
