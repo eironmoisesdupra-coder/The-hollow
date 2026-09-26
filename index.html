@@ -3906,18 +3906,16 @@
     });
 
     function roundedPart(scale,material){
-      const mesh=new THREE.Mesh(new THREE.SphereGeometry(1,18,12),material);
-      mesh.scale.set(scale.x,scale.y,scale.z);
+      const mesh=new THREE.Mesh(new THREE.BoxGeometry(scale.x*2,scale.y*2,scale.z*2),material);
       mesh.castShadow=true;
       return mesh;
     }
 
     function limbBetween(a,b,rA,rB,material){
-      const start=new THREE.Vector3(a[0],a[1],a[2]);
-      const end=new THREE.Vector3(b[0],b[1],b[2]);
+      const start=new THREE.Vector3(...a), end=new THREE.Vector3(...b);
       const mid=start.clone().add(end).multiplyScalar(.5);
-      const len=start.distanceTo(end);
-      const mesh=new THREE.Mesh(new THREE.CylinderGeometry(rB,rA,len,16),material);
+      const len=start.distanceTo(end), width=Math.max(rA,rB)*1.8;
+      const mesh=new THREE.Mesh(new THREE.BoxGeometry(width,len,width),material);
       mesh.position.copy(mid);
       mesh.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),end.clone().sub(start).normalize());
       mesh.castShadow=true;
@@ -3925,13 +3923,13 @@
     }
 
     function addFinger(handGroup,base,mid,tip,material){
-      const first=limbBetween(base,mid,.031,.027,material);
-      const second=limbBetween(mid,tip,.027,.021,material);
-      const joint=roundedPart({x:.034,y:.034,z:.034},material);
-      joint.position.set(mid[0],mid[1],mid[2]);
-      const fingertip=roundedPart({x:.026,y:.03,z:.024},material);
-      fingertip.position.set(tip[0],tip[1],tip[2]);
-      handGroup.add(first,second,joint,fingertip);
+      const start=new THREE.Vector3(...base), end=new THREE.Vector3(...tip);
+      const center=start.clone().add(end).multiplyScalar(.5), len=start.distanceTo(end);
+      const finger=new THREE.Mesh(new THREE.BoxGeometry(.058,len,.058),material);
+      finger.position.copy(center);
+      finger.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),end.clone().sub(start).normalize());
+      finger.castShadow=true;
+      handGroup.add(finger);
     }
 
     // Phone centered between naturally connected arms.
