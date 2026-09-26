@@ -2006,7 +2006,30 @@
     setTimeout(()=>playTone(74,.09,.021,'sine',46),430);
   }
 
-  function speakElias(line,duration=2600){
+  function pickEliasVoice(){
+    if(!('speechSynthesis' in window)) return null;
+    const voices=window.speechSynthesis.getVoices()||[];
+    if(!voices.length) return null;
+
+    const maleHints=/\b(male|david|mark|daniel|james|guy|ryan|george|thomas|alex|aaron|fred|bruce|ralph|oliver|liam|matthew|christopher|arthur)\b/i;
+    const femaleHints=/\b(female|zira|samantha|victoria|karen|moira|fiona|susan|hazel|heera|veena)\b/i;
+
+    const scored=voices.map(voice=>{
+      let score=0;
+      if(/^en/i.test(voice.lang||'')) score+=8;
+      if(/en-US|en-GB|en-AU/i.test(voice.lang||'')) score+=2;
+      if(maleHints.test(voice.name||'')) score+=12;
+      if(/google uk english male/i.test(voice.name||'')) score+=18;
+      if(/microsoft (david|mark|guy|ryan)/i.test(voice.name||'')) score+=18;
+      if(femaleHints.test(voice.name||'')) score-=18;
+      if(voice.localService) score+=1;
+      return {voice,score};
+    }).sort((a,b)=>b.score-a.score);
+
+    return scored[0]?.voice||voices.find(v=>/^en/i.test(v.lang||''))||voices[0];
+  }
+
+  function speakElias(line,duration=2600,emotion='normal'){
     const box=$('eliasDialogue');
     const textEl=$('eliasDialogueText');
     if(!box||!textEl) return;
@@ -2023,13 +2046,24 @@
       try{
         window.speechSynthesis.cancel();
         const utter=new SpeechSynthesisUtterance(line);
-        const voices=window.speechSynthesis.getVoices();
-        const english=voices.find(v=>/^en/i.test(v.lang))||voices[0];
-        if(english) utter.voice=english;
-        utter.lang=english?.lang||'en-US';
-        utter.rate=.88;
-        utter.pitch=.78;
-        utter.volume=.72;
+        const voice=pickEliasVoice();
+        if(voice) utter.voice=voice;
+        utter.lang=voice?.lang||'en-US';
+
+        const profiles={
+          normal:{rate:.84,pitch:.66,volume:.84},
+          nervous:{rate:.94,pitch:.72,volume:.88},
+          surprised:{rate:.98,pitch:.78,volume:.92},
+          angry:{rate:.88,pitch:.58,volume:.96},
+          afraid:{rate:.91,pitch:.69,volume:.90},
+          quiet:{rate:.78,pitch:.61,volume:.72}
+        };
+        const profile=profiles[emotion]||profiles.normal;
+
+        utter.rate=profile.rate;
+        utter.pitch=profile.pitch;
+        utter.volume=profile.volume;
+
         window.speechSynthesis.speak(utter);
       }catch(_){}
     }
@@ -2949,10 +2983,6 @@
     const doorPositions=[4.3,-2,-8.3,-14.6,-20.9];
     doorPositions.forEach((z,index)=>{
       [-1,1].forEach(side=>{
-        const door=new THREE.Mesh(new THREE.BoxGeometry(.18,2.85,1.6),doorMat);
-        door.castShadow=true;
-        door.receiveShadow=true;
-        door.position.set(side*3.88,1.48,z);
         const doorNumber=301+index*2+(side<0?1:0);
 
         const doorwayVoid=new THREE.Mesh(
@@ -2966,8 +2996,6 @@
         doorwayVoid.rotation.y=side>0?-Math.PI/2:Math.PI/2;
         scene.add(doorwayVoid);
 
-        // Slight inner shadow gives the opening depth instead of showing the
-        // continuous concrete wall behind the moving door.
         const doorwayDepth=new THREE.Mesh(
           new THREE.BoxGeometry(.34,2.70,1.46),
           new THREE.MeshStandardMaterial({
@@ -2979,38 +3007,72 @@
         doorwayDepth.position.set(side*4.02,1.48,z);
         scene.add(doorwayDepth);
 
-        door.userData.doorwayVoid=doorwayVoid;
-        door.userData.interactionType='door';
-        door.userData.interactionLabel='Door '+doorNumber;
-        door.userData.doorNumber=doorNumber;
-        door.userData.side=side;
-        door.userData.targetRotation=0;
-        door.userData.baseZ=z;
-        door.userData.baseX=side*3.88;
-        interactables.push(door);
-        doorMeshes.push(door);
-        scene.add(door);
+        // Hinge pivot sits on one vertical edge of the doorway.
+        // Every visible door part is a child, so the number and knob rotate with it.
+        const hinge=new THREE.Group();
+        const hingeZ=z-.78;
+        hinge.position.set(side*3.88,1.48,hingeZ);
+        hinge.userData.interactionType='door';
+        hinge.userData.interactionLabel='Door '+doorNumber;
+        hinge.userData.doorNumber=doorNumber;
+        hinge.userData.side=side;
+        hinge.userData.targetRotation=0;
+        hinge.userData.baseZ=z;
+        hinge.userData.baseX=side*3.88;
+        hinge.userData.doorwayVoid=doorwayVoid;
+        scene.add(hinge);
+
+        const doorPanel=new THREE.Mesh(
+          new THREE.BoxGeometry(.18,2.85,1.56),
+          doorMat
+        );
+        doorPanel.castShadow=true;
+        doorPanel.receiveShadow=true;
+        doorPanel.position.set(0,0,.78);
+        hinge.add(doorPanel);
+
+        const knob=new THREE.Mesh(
+          new THREE.SphereGeometry(.06,10,8),
+          new THREE.MeshStandardMaterial({
+            color:0x827b6c,
+            roughness:.28,
+            metalness:.68
+          })
+        );
+        knob.position.set(side>0?-.115:.115,-.03,1.24);
+        hinge.add(knob);
+
+        const plaqueTex=makeTextTexture(String(doorNumber),'#b1aa98','#161412');
+        const plaque=new THREE.Mesh(
+          new THREE.PlaneGeometry(.42,.18),
+          new THREE.MeshBasicMaterial({map:plaqueTex,transparent:false})
+        );
+        plaque.position.set(side>0?-.101:.101,.87,.78);
+        plaque.rotation.y=side>0?-Math.PI/2:Math.PI/2;
+        hinge.add(plaque);
+
+        // Thin inset paneling gives the door more depth while it turns.
+        const panelMat=new THREE.MeshStandardMaterial({
+          color:0x171413,
+          roughness:.94,
+          metalness:.02
+        });
+        [-.43,.37].forEach(localZ=>{
+          const inset=new THREE.Mesh(
+            new THREE.BoxGeometry(.012,.88,.52),
+            panelMat
+          );
+          inset.position.set(side>0?-.098:.098,.18,localZ+.78);
+          hinge.add(inset);
+        });
+
+        interactables.push(doorPanel);
+        doorMeshes.push(hinge);
 
         const frameMat=new THREE.MeshStandardMaterial({color:0x111314,roughness:.9});
         const top=new THREE.Mesh(new THREE.BoxGeometry(.3,.14,1.86),frameMat);
         top.position.set(side*3.72,2.98,z);
         scene.add(top);
-
-        const knob=new THREE.Mesh(
-          new THREE.SphereGeometry(.055,8,6),
-          new THREE.MeshStandardMaterial({color:0x7b7568,roughness:.35,metalness:.65})
-        );
-        knob.position.set(side*3.72,1.45,z+(side>0?-.45:.45));
-        scene.add(knob);
-
-        const plaqueTex=makeTextTexture(String(doorNumber),'#9a9486','#161412');
-        const plaque=new THREE.Mesh(
-          new THREE.PlaneGeometry(.42,.18),
-          new THREE.MeshBasicMaterial({map:plaqueTex,transparent:false})
-        );
-        plaque.position.set(side*3.755,2.35,z);
-        plaque.rotation.y=side>0?-Math.PI/2:Math.PI/2;
-        scene.add(plaque);
       });
     });
 
@@ -3303,47 +3365,84 @@
     hollowFigure.scale.set(1.08,1.18,1.08);
     scene.add(hollowFigure);
 
-    // Door 307 cutscene mouth: an abstract black oval with pale teeth.
-    // It engulfs the camera as a supernatural transition, without gore.
+    // Door 307 cutscene mouth: layered shadow opening with uneven rows of teeth.
+    // Kept abstract and non-graphic, but much less cartoon-like.
     const mouthGroup=new THREE.Group();
+
     const mouthInner=new THREE.Mesh(
-      new THREE.CircleGeometry(.62,32),
-      new THREE.MeshBasicMaterial({color:0x000000,side:THREE.DoubleSide})
+      new THREE.CircleGeometry(.76,48),
+      new THREE.MeshBasicMaterial({
+        color:0x000000,
+        side:THREE.DoubleSide
+      })
     );
-    mouthInner.scale.set(1.18,.58,1);
+    mouthInner.scale.set(1.24,.54,1);
     mouthGroup.add(mouthInner);
 
-    const mouthRim=new THREE.Mesh(
-      new THREE.TorusGeometry(.62,.10,10,36),
+    const shadowRingOuter=new THREE.Mesh(
+      new THREE.TorusGeometry(.74,.16,14,56),
       new THREE.MeshStandardMaterial({
-        color:0x111010,
-        roughness:.88,
+        color:0x030303,
+        roughness:1,
         metalness:0
       })
     );
-    mouthRim.scale.set(1.18,.58,1);
-    mouthGroup.add(mouthRim);
+    shadowRingOuter.scale.set(1.24,.54,1);
+    mouthGroup.add(shadowRingOuter);
+
+    const shadowRingInner=new THREE.Mesh(
+      new THREE.TorusGeometry(.62,.065,12,52),
+      new THREE.MeshStandardMaterial({
+        color:0x12100f,
+        roughness:.96,
+        metalness:0
+      })
+    );
+    shadowRingInner.scale.set(1.25,.53,1);
+    shadowRingInner.position.z=.025;
+    mouthGroup.add(shadowRingInner);
 
     const toothMat=new THREE.MeshStandardMaterial({
-      color:0xc7c5b8,
-      roughness:.72,
+      color:0xbdb9aa,
+      roughness:.78,
       metalness:0
     });
-    for(let row=0;row<2;row++){
-      for(let t=0;t<7;t++){
-        const tooth=new THREE.Mesh(
-          new THREE.ConeGeometry(.07,.18,6),
-          toothMat
-        );
-        const x=(t-3)*.16;
-        const y=row===0?.20:-.20;
-        tooth.position.set(x,y,.035);
-        tooth.rotation.z=row===0?Math.PI:0;
-        mouthGroup.add(tooth);
-      }
+
+    function addMouthTooth(x,y,length,width,upper,twist){
+      const tooth=new THREE.Mesh(
+        new THREE.ConeGeometry(width,length,7),
+        toothMat
+      );
+      tooth.position.set(x,y,.075);
+      tooth.rotation.z=(upper?Math.PI:0)+twist;
+      tooth.scale.z=.72;
+      mouthGroup.add(tooth);
     }
+
+    const upperTeeth=[
+      [-.62,.205,.23,.055,-.14],[-.51,.225,.28,.062,.11],[-.39,.236,.20,.052,-.08],
+      [-.27,.246,.31,.066,.07],[-.14,.252,.24,.056,-.05],[0,.255,.33,.070,.03],
+      [.14,.252,.22,.055,.06],[.27,.246,.30,.064,-.08],[.39,.236,.21,.052,.08],
+      [.51,.225,.27,.061,-.10],[.62,.205,.22,.054,.12]
+    ];
+    const lowerTeeth=[
+      [-.61,-.205,.21,.052,.10],[-.50,-.224,.29,.062,-.08],[-.38,-.236,.23,.055,.06],
+      [-.26,-.245,.27,.060,-.06],[-.13,-.252,.20,.051,.05],[0,-.255,.31,.068,-.02],
+      [.13,-.252,.24,.056,-.05],[.26,-.245,.29,.062,.08],[.38,-.236,.22,.054,-.07],
+      [.50,-.224,.26,.060,.09],[.61,-.205,.20,.051,-.11]
+    ];
+    upperTeeth.forEach(t=>addMouthTooth(t[0],t[1],t[2],t[3],true,t[4]));
+    lowerTeeth.forEach(t=>addMouthTooth(t[0],t[1],t[2],t[3],false,t[4]));
+
+    // Smaller secondary teeth deepen the silhouette without making it graphic.
+    for(let i=0;i<8;i++){
+      const x=-.49+i*.14;
+      addMouthTooth(x,.115,.13+(i%3)*.025,.035,true,(i%2?1:-1)*.04);
+      addMouthTooth(x,-.115,.12+((i+1)%3)*.022,.034,false,(i%2?-1:1)*.04);
+    }
+
     mouthGroup.visible=false;
-    mouthGroup.scale.set(.42,.42,.42);
+    mouthGroup.scale.set(.34,.34,.34);
     scene.add(mouthGroup);
 
     const phoneRig=new THREE.Group();
@@ -3634,12 +3733,17 @@
     setSprint(false);
     setInteractionTarget(null);
     $('game').classList.add('door-cutscene');
+    const blackout=$('scareBlackout');
+    if(blackout){
+      blackout.classList.remove('on');
+      blackout.style.opacity='';
+    }
 
     // Open Door 307 first.
-    door.userData.targetRotation=door.userData.side>0?-1.08:1.08;
+    door.userData.targetRotation=door.userData.side>0?-1.12:1.12;
     playDoorOpen();
     startDoor307Tension();
-    speakElias("Wait... that's not a room.",2300);
+    speakElias("Wait... that's not a room.",2300,'surprised');
 
     const camera=threeGame.camera;
     const startPos=camera.position.clone();
@@ -3685,10 +3789,10 @@
 
     if(n===303){
       if(Math.abs(door.userData.targetRotation)<.05){
-        door.userData.targetRotation=door.userData.side>0?-.42:.42;
+        door.userData.targetRotation=door.userData.side>0?-.82:.82;
         playDoorOpen();
         toast('The door opens only a few inches.');
-        speakElias("It's just darkness in there.",2300);
+        speakElias("It's just darkness in there.",2300,'nervous');
       }else{
         door.userData.targetRotation=0;
         playDoorClose();
@@ -3701,7 +3805,7 @@
       playDoorLocked();
       toast('Something knocks back from the other side.');
       setTimeout(playDistantKnock,260);
-      setTimeout(()=>speakElias("No. I'm not opening that.",2200),720);
+      setTimeout(()=>speakElias("No. I'm not opening that.",2200,'angry'),720);
       return;
     }
 
@@ -3709,7 +3813,7 @@
       playDoorLocked();
       toast('A whisper stops the moment you touch the handle.');
       playNoiseBurst(.25,.0252,1100);
-      setTimeout(()=>speakElias("I heard you.",1900),320);
+      setTimeout(()=>speakElias("I heard you.",1900,'nervous'),320);
       return;
     }
 
@@ -3717,7 +3821,7 @@
       playDoorLocked();
       toast('Scratching. Then silence.');
       setTimeout(()=>playNoiseBurst(.18,.035,480),160);
-      setTimeout(()=>speakElias("Something's moving in there.",2300),450);
+      setTimeout(()=>speakElias("Something's moving in there.",2300,'afraid'),450);
       return;
     }
 
@@ -3728,7 +3832,7 @@
 
     playDoorLocked();
     toast('Locked.');
-    if(n===301) speakElias("Locked... of course.",1800);
+    if(n===301) speakElias("Locked... of course.",1800,'normal');
   }
 
   function callElevator(){
@@ -3747,7 +3851,7 @@
       objective.classList.remove('updated');
       void objective.offsetWidth;
       objective.classList.add('updated');
-      speakElias("Floor H? This building shouldn't have an H.",3100);
+      speakElias("Floor H? This building shouldn't have an H.",3100,'surprised');
     },1500);
   }
 
@@ -3763,10 +3867,10 @@
       const label=currentInteractable.userData.interactionLabel||'object';
       if(label.toLowerCase().includes('radiator')){
         toast('Cold metal. It has not worked in years.');
-        speakElias("Cold. Like the power's been dead for years.",2700);
+        speakElias("Cold. Like the power's been dead for years.",2700,'quiet');
       }else{
         toast('Dust outlines where someone once sat.');
-        speakElias("Someone was sitting here... recently.",2600);
+        speakElias("Someone was sitting here... recently.",2600,'nervous');
       }
     }
   }
@@ -3844,13 +3948,19 @@
         // Cubic acceleration: starts very slowly, then rushes toward the camera.
         const rush=raw*raw*raw;
 
+        // Surroundings darken continuously as the mouth occupies more of the view.
+        if(black){
+          black.classList.remove('on');
+          black.style.opacity=String(Math.min(.82,raw*.74));
+        }
+
         const cameraForward=new THREE.Vector3(0,0,-1).applyQuaternion(g.camera.quaternion);
         const mouthEnd=g.camera.position.clone().add(cameraForward.multiplyScalar(.16));
 
         g.mouthGroup.position.lerpVectors(cs.mouthStart,mouthEnd,rush);
         g.mouthGroup.lookAt(g.camera.position);
 
-        const scale=.42+rush*4.8;
+        const scale=.34+rush*5.6;
         g.mouthGroup.scale.set(scale,scale,scale);
 
         if(save.sound&&raw>.58&&now-cs.lastMouthSound>170){
@@ -3859,8 +3969,11 @@
           playTone(64+raw*24,.07,.008+raw*.010,'sine',44);
         }
       }else if(elapsed>=3550&&elapsed<4050){
-        // The shadow fills the player's view.
-        black?.classList.add('on');
+        // The shadow fully closes around the player's view.
+        if(black){
+          black.style.opacity='1';
+          black.classList.remove('on');
+        }
         g.mouthGroup.visible=false;
       }else if(elapsed>=4050&&!cs.teleported){
         cs.teleported=true;
@@ -3871,13 +3984,16 @@
         g.camera.rotation.set(0,0,0);
         cs.door.userData.targetRotation=0;
 
-        black?.classList.remove('on');
+        if(black){
+          black.classList.remove('on');
+          black.style.opacity='';
+        }
         $('game').classList.remove('door-cutscene');
         stopDoor307Tension(.18);
         door307Cutscene=null;
         threeRunning=true;
         setInteractionTarget(null);
-        setTimeout(()=>speakElias("No... I've been here before.",3000),260);
+        setTimeout(()=>speakElias("No... I've been here before.",3000,'afraid'),260);
       }
     }
 
@@ -3984,7 +4100,7 @@
         g.hollowFigure.visible=false;
         scareStart=0;
         toast('It is gone.');
-        speakElias("What was that?",2100);
+        speakElias("What was that?",2100,'surprised');
       }
     }
 
@@ -4043,7 +4159,7 @@
     $('storybox')?.setAttribute('aria-hidden','true');
     threeRunning=true;
     if(save.progress<=1){
-      setTimeout(()=>speakElias("Okay... where am I?",2200),650);
+      setTimeout(()=>speakElias("Okay... where am I?",2200,'nervous'),650);
     }
     threeGame.lastTime=performance.now();
     if(!threeGame.raf) threeGame.raf=requestAnimationFrame(animateThreeGame);
@@ -4413,7 +4529,7 @@
       $('storyText').textContent='Noah knew you would wake up here. The message is impossible to explain, but it gives you one direction: get out.';
       $('nextBtn').textContent='Continue exploring';
       toast('Objective updated — Find an exit');
-      speakElias("Noah... how did you know I'd wake up here?",3200);
+      speakElias("Noah... how did you know I'd wake up here?",3200,'nervous');
       save.progress=Math.max(save.progress,4);
       persist();
       setTimeout(triggerFirstScare,520);
