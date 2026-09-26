@@ -2011,22 +2011,55 @@
     const voices=window.speechSynthesis.getVoices()||[];
     if(!voices.length) return null;
 
-    const maleHints=/\b(male|david|mark|daniel|james|guy|ryan|george|thomas|alex|aaron|fred|bruce|ralph|oliver|liam|matthew|christopher|arthur)\b/i;
-    const femaleHints=/\b(female|zira|samantha|victoria|karen|moira|fiona|susan|hazel|heera|veena)\b/i;
+    const preferredMaleNames=[
+      /google uk english male/i,
+      /microsoft guy/i,
+      /microsoft ryan/i,
+      /microsoft christopher/i,
+      /microsoft eric/i,
+      /microsoft andrew/i,
+      /microsoft brian/i,
+      /microsoft david/i,
+      /microsoft mark/i,
+      /daniel/i,
+      /arthur/i,
+      /oliver/i,
+      /liam/i,
+      /ryan/i,
+      /david/i,
+      /male/i
+    ];
+    const naturalHints=/natural|neural|enhanced|premium|online|studio/i;
+    const femaleHints=/female|zira|samantha|victoria|karen|moira|fiona|susan|hazel|heera|veena|aria|jenny/i;
 
     const scored=voices.map(voice=>{
+      const name=voice.name||'';
+      const lang=voice.lang||'';
       let score=0;
-      if(/^en/i.test(voice.lang||'')) score+=8;
-      if(/en-US|en-GB|en-AU/i.test(voice.lang||'')) score+=2;
-      if(maleHints.test(voice.name||'')) score+=12;
-      if(/google uk english male/i.test(voice.name||'')) score+=18;
-      if(/microsoft (david|mark|guy|ryan)/i.test(voice.name||'')) score+=18;
-      if(femaleHints.test(voice.name||'')) score-=18;
-      if(voice.localService) score+=1;
+
+      if(/^en/i.test(lang)) score+=18;
+      if(/en-US|en-GB|en-AU|en-CA/i.test(lang)) score+=4;
+      if(/google|microsoft|samsung|android/i.test(name)) score+=5;
+      if(naturalHints.test(name)) score+=16;
+      if(voice.localService) score+=2;
+
+      preferredMaleNames.forEach((re,index)=>{
+        if(re.test(name)) score+=30-index;
+      });
+
+      if(femaleHints.test(name)) score-=45;
+
       return {voice,score};
     }).sort((a,b)=>b.score-a.score);
 
     return scored[0]?.voice||voices.find(v=>/^en/i.test(v.lang||''))||voices[0];
+  }
+
+  if('speechSynthesis' in window){
+    try{
+      window.speechSynthesis.getVoices();
+      window.speechSynthesis.onvoiceschanged=()=>window.speechSynthesis.getVoices();
+    }catch(_){}
   }
 
   function speakElias(line,duration=2600,emotion='normal'){
@@ -2051,12 +2084,12 @@
         utter.lang=voice?.lang||'en-US';
 
         const profiles={
-          normal:{rate:.84,pitch:.66,volume:.84},
-          nervous:{rate:.94,pitch:.72,volume:.88},
-          surprised:{rate:.98,pitch:.78,volume:.92},
-          angry:{rate:.88,pitch:.58,volume:.96},
-          afraid:{rate:.91,pitch:.69,volume:.90},
-          quiet:{rate:.78,pitch:.61,volume:.72}
+          normal:{rate:.90,pitch:.86,volume:.88},
+          nervous:{rate:.97,pitch:.90,volume:.91},
+          surprised:{rate:1.02,pitch:.94,volume:.94},
+          angry:{rate:.92,pitch:.80,volume:.98},
+          afraid:{rate:.96,pitch:.88,volume:.93},
+          quiet:{rate:.84,pitch:.82,volume:.76}
         };
         const profile=profiles[emotion]||profiles.normal;
 
@@ -3365,84 +3398,195 @@
     hollowFigure.scale.set(1.08,1.18,1.08);
     scene.add(hollowFigure);
 
-    // Door 307 cutscene mouth: layered shadow opening with uneven rows of teeth.
-    // Kept abstract and non-graphic, but much less cartoon-like.
+    // Door 307 cutscene maw: an irregular shadow opening with depth,
+    // asymmetrical teeth, and a layered dark throat. No bright/cartoon colors.
     const mouthGroup=new THREE.Group();
 
-    const mouthInner=new THREE.Mesh(
-      new THREE.CircleGeometry(.76,48),
-      new THREE.MeshBasicMaterial({
-        color:0x000000,
-        side:THREE.DoubleSide
-      })
-    );
-    mouthInner.scale.set(1.24,.54,1);
-    mouthGroup.add(mouthInner);
+    function buildMouthShape(scaleX=1,scaleY=1,irregularity=.08,segments=64){
+      const shape=new THREE.Shape();
+      for(let i=0;i<=segments;i++){
+        const a=(i/segments)*Math.PI*2;
+        const noise=
+          1+
+          Math.sin(a*3.0+0.8)*irregularity+
+          Math.sin(a*5.0+2.1)*irregularity*.55+
+          Math.sin(a*9.0+1.4)*irregularity*.22;
+        const x=Math.cos(a)*.82*scaleX*noise;
+        const y=Math.sin(a)*.48*scaleY*noise;
+        if(i===0) shape.moveTo(x,y);
+        else shape.lineTo(x,y);
+      }
+      shape.closePath();
+      return shape;
+    }
 
-    const shadowRingOuter=new THREE.Mesh(
-      new THREE.TorusGeometry(.74,.16,14,56),
+    const throatBack=new THREE.Mesh(
+      new THREE.ShapeGeometry(buildMouthShape(.88,.76,.055,72)),
+      new THREE.MeshBasicMaterial({color:0x000000,side:THREE.DoubleSide})
+    );
+    throatBack.position.z=-.34;
+    mouthGroup.add(throatBack);
+
+    // Layered tunnel creates actual depth instead of a flat oval.
+    const throatLayers=[];
+    for(let i=0;i<7;i++){
+      const depth=i*.075;
+      const shrink=1-i*.065;
+      const ring=new THREE.Mesh(
+        new THREE.ShapeGeometry(buildMouthShape(shrink,shrink*.95,.07+i*.006,64)),
+        new THREE.MeshStandardMaterial({
+          color:i<2?0x090807:0x020202,
+          roughness:1,
+          metalness:0,
+          side:THREE.DoubleSide,
+          transparent:true,
+          opacity:.94
+        })
+      );
+      ring.position.z=-depth;
+      throatLayers.push(ring);
+      mouthGroup.add(ring);
+    }
+
+    // Uneven shadow rim around the opening.
+    const rimPoints=[];
+    for(let i=0;i<72;i++){
+      const a=(i/72)*Math.PI*2;
+      const wobble=1+.085*Math.sin(a*3.2)+.045*Math.sin(a*7.1+1.3);
+      rimPoints.push(new THREE.Vector3(
+        Math.cos(a)*.88*wobble,
+        Math.sin(a)*.50*wobble,
+        .035+.018*Math.sin(a*5.4)
+      ));
+    }
+    const rimCurve=new THREE.CatmullRomCurve3(rimPoints,true);
+    const mouthRim=new THREE.Mesh(
+      new THREE.TubeGeometry(rimCurve,96,.075,10,true),
       new THREE.MeshStandardMaterial({
-        color:0x030303,
-        roughness:1,
+        color:0x080707,
+        roughness:.94,
         metalness:0
       })
     );
-    shadowRingOuter.scale.set(1.24,.54,1);
-    mouthGroup.add(shadowRingOuter);
-
-    const shadowRingInner=new THREE.Mesh(
-      new THREE.TorusGeometry(.62,.065,12,52),
-      new THREE.MeshStandardMaterial({
-        color:0x12100f,
-        roughness:.96,
-        metalness:0
-      })
-    );
-    shadowRingInner.scale.set(1.25,.53,1);
-    shadowRingInner.position.z=.025;
-    mouthGroup.add(shadowRingInner);
+    mouthGroup.add(mouthRim);
 
     const toothMat=new THREE.MeshStandardMaterial({
-      color:0xbdb9aa,
-      roughness:.78,
+      color:0x9f9b8d,
+      roughness:.86,
+      metalness:0
+    });
+    const toothDarkMat=new THREE.MeshStandardMaterial({
+      color:0x6d6a61,
+      roughness:.92,
       metalness:0
     });
 
-    function addMouthTooth(x,y,length,width,upper,twist){
+    function addRealisticTooth(x,y,z,length,width,upper,twist,lean=0,material=toothMat){
       const tooth=new THREE.Mesh(
-        new THREE.ConeGeometry(width,length,7),
-        toothMat
+        new THREE.ConeGeometry(width,length,8),
+        material
       );
-      tooth.position.set(x,y,.075);
+      tooth.position.set(x,y,z);
       tooth.rotation.z=(upper?Math.PI:0)+twist;
-      tooth.scale.z=.72;
+      tooth.rotation.x=lean;
+      tooth.scale.set(1,.92,.78);
+      tooth.castShadow=true;
       mouthGroup.add(tooth);
+      return tooth;
     }
 
-    const upperTeeth=[
-      [-.62,.205,.23,.055,-.14],[-.51,.225,.28,.062,.11],[-.39,.236,.20,.052,-.08],
-      [-.27,.246,.31,.066,.07],[-.14,.252,.24,.056,-.05],[0,.255,.33,.070,.03],
-      [.14,.252,.22,.055,.06],[.27,.246,.30,.064,-.08],[.39,.236,.21,.052,.08],
-      [.51,.225,.27,.061,-.10],[.62,.205,.22,.054,.12]
+    // Main irregular front teeth.
+    const upper=[
+      [-.69,.235,.085,.28,.056,-.11,.10],[-.58,.254,.08,.22,.049,.08,-.08],
+      [-.47,.266,.075,.34,.066,-.05,.05],[-.35,.278,.07,.25,.054,.07,-.05],
+      [-.23,.286,.065,.37,.072,-.04,.08],[-.11,.292,.06,.27,.056,.03,-.06],
+      [.02,.294,.055,.39,.074,-.02,.04],[.15,.291,.06,.24,.052,.05,-.05],
+      [.28,.284,.065,.35,.068,-.07,.07],[.40,.274,.07,.26,.055,.06,-.08],
+      [.52,.261,.078,.32,.064,-.05,.06],[.63,.244,.083,.23,.050,.08,-.05],
+      [.73,.222,.09,.27,.058,-.12,.07]
     ];
-    const lowerTeeth=[
-      [-.61,-.205,.21,.052,.10],[-.50,-.224,.29,.062,-.08],[-.38,-.236,.23,.055,.06],
-      [-.26,-.245,.27,.060,-.06],[-.13,-.252,.20,.051,.05],[0,-.255,.31,.068,-.02],
-      [.13,-.252,.24,.056,-.05],[.26,-.245,.29,.062,.08],[.38,-.236,.22,.054,-.07],
-      [.50,-.224,.26,.060,.09],[.61,-.205,.20,.051,-.11]
+    const lower=[
+      [-.70,-.225,.088,.24,.052,.09,-.06],[-.59,-.244,.082,.31,.063,-.08,.08],
+      [-.47,-.259,.076,.23,.050,.06,-.07],[-.35,-.271,.07,.36,.070,-.05,.06],
+      [-.23,-.282,.065,.25,.054,.05,-.08],[-.11,-.288,.06,.34,.066,-.04,.05],
+      [.02,-.291,.056,.28,.058,.02,-.07],[.15,-.287,.06,.37,.071,-.05,.06],
+      [.28,-.280,.065,.22,.050,.07,-.08],[.41,-.269,.071,.33,.065,-.06,.07],
+      [.53,-.254,.078,.25,.053,.05,-.06],[.64,-.237,.084,.30,.061,-.09,.08],
+      [.74,-.216,.09,.23,.050,.11,-.05]
     ];
-    upperTeeth.forEach(t=>addMouthTooth(t[0],t[1],t[2],t[3],true,t[4]));
-    lowerTeeth.forEach(t=>addMouthTooth(t[0],t[1],t[2],t[3],false,t[4]));
 
-    // Smaller secondary teeth deepen the silhouette without making it graphic.
-    for(let i=0;i<8;i++){
-      const x=-.49+i*.14;
-      addMouthTooth(x,.115,.13+(i%3)*.025,.035,true,(i%2?1:-1)*.04);
-      addMouthTooth(x,-.115,.12+((i+1)%3)*.022,.034,false,(i%2?-1:1)*.04);
+    upper.forEach(t=>addRealisticTooth(t[0],t[1],t[2],t[3],t[4],true,t[5],t[6]));
+    lower.forEach(t=>addRealisticTooth(t[0],t[1],t[2],t[3],t[4],false,t[5],t[6]));
+
+    // Inner rows give a deeper, crowded silhouette when the mouth gets close.
+    for(let row=0;row<3;row++){
+      const z=-.07-row*.10;
+      const spread=.58-row*.08;
+      const y=.14-row*.015;
+      const count=10-row;
+      for(let i=0;i<count;i++){
+        const x=-spread+(i/(count-1))*spread*2;
+        const jitter=((i*37+row*19)%7-3)*.006;
+        addRealisticTooth(
+          x+jitter,
+          y,
+          z,
+          .13+((i+row)%4)*.022,
+          .032+((i+2*row)%3)*.004,
+          true,
+          ((i%2)?1:-1)*.035,
+          ((i%3)-1)*.04,
+          row===2?toothDarkMat:toothMat
+        );
+        addRealisticTooth(
+          x-jitter,
+          -y,
+          z,
+          .12+((i+row+1)%4)*.021,
+          .031+((i+row)%3)*.004,
+          false,
+          ((i%2)?-1:1)*.035,
+          ((i%3)-1)*.04,
+          row===2?toothDarkMat:toothMat
+        );
+      }
     }
+
+    // Thin, dark tendrils around the mouth make the silhouette feel organic
+    // without using gore or bright materials.
+    const tendrilMat=new THREE.MeshStandardMaterial({
+      color:0x020202,
+      roughness:1,
+      metalness:0
+    });
+    for(let i=0;i<14;i++){
+      const angle=(i/14)*Math.PI*2+(i%2)*.08;
+      const start=new THREE.Vector3(Math.cos(angle)*.78,Math.sin(angle)*.43,.015);
+      const mid=new THREE.Vector3(
+        Math.cos(angle)*(.98+.11*Math.sin(i*1.7)),
+        Math.sin(angle)*(.60+.08*Math.cos(i*1.2)),
+        -.04
+      );
+      const end=new THREE.Vector3(
+        Math.cos(angle)*(1.22+.12*Math.sin(i*2.1)),
+        Math.sin(angle)*(.73+.09*Math.cos(i*1.4)),
+        -.12
+      );
+      const curve=new THREE.CatmullRomCurve3([start,mid,end]);
+      const tendril=new THREE.Mesh(
+        new THREE.TubeGeometry(curve,14,.018+(i%3)*.004,6,false),
+        tendrilMat
+      );
+      mouthGroup.add(tendril);
+    }
+
+    // Tiny cold light only on teeth; surrounding form stays nearly black.
+    const mouthTeethLight=new THREE.PointLight(0xbac6c7,.34,2.6,2);
+    mouthTeethLight.position.set(0,.03,.56);
+    mouthGroup.add(mouthTeethLight);
 
     mouthGroup.visible=false;
-    mouthGroup.scale.set(.34,.34,.34);
+    mouthGroup.scale.set(.25,.25,.25);
     scene.add(mouthGroup);
 
     const phoneRig=new THREE.Group();
@@ -3941,6 +4085,10 @@
       // Phase 2: pause on the open doorway, then reveal the mouth.
       if(elapsed>=950&&elapsed<1500){
         g.mouthGroup.visible=false;
+        if(black){
+          black.classList.remove('on');
+          black.style.opacity=String(Math.min(.18,(elapsed-950)/550*.18));
+        }
       }else if(elapsed>=1500&&elapsed<3550){
         g.mouthGroup.visible=true;
 
@@ -3951,7 +4099,8 @@
         // Surroundings darken continuously as the mouth occupies more of the view.
         if(black){
           black.classList.remove('on');
-          black.style.opacity=String(Math.min(.82,raw*.74));
+          const darkness=Math.min(.92,Math.pow(raw,.82)*.88);
+          black.style.opacity=String(darkness);
         }
 
         const cameraForward=new THREE.Vector3(0,0,-1).applyQuaternion(g.camera.quaternion);
@@ -3960,8 +4109,10 @@
         g.mouthGroup.position.lerpVectors(cs.mouthStart,mouthEnd,rush);
         g.mouthGroup.lookAt(g.camera.position);
 
-        const scale=.34+rush*5.6;
-        g.mouthGroup.scale.set(scale,scale,scale);
+        const scale=.25+rush*6.4;
+        const twitch=1+Math.sin(now*.011)*.018*(.2+raw);
+        g.mouthGroup.scale.set(scale*twitch,scale*(1-.012*Math.sin(now*.009)),scale);
+        g.mouthGroup.rotation.z=Math.sin(now*.0047)*.035*(.3+raw);
 
         if(save.sound&&raw>.58&&now-cs.lastMouthSound>170){
           cs.lastMouthSound=now;
