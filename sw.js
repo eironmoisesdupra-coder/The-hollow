@@ -1,4 +1,4 @@
-const CACHE='the-hollow-v35';
+const CACHE='the-hollow-v36';
 const ASSETS=[
   './index.html',
   './manifest.webmanifest',
@@ -14,6 +14,8 @@ const ASSETS=[
   './assets/audio/elias/elias_005_place_looks_abandoned.mp3',
   './assets/audio/elias/elias_006_door_other_side.mp3',
   './assets/audio/elias/elias_007_already_walked_past_this.mp3',
+  './assets/audio/elias/elias_008_what_is_that.mp3',
+  './assets/audio/elias/elias_009_dont_move.mp3',
   './vendor/three.min.js'
 ];
 
