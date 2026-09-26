@@ -1810,6 +1810,203 @@
     #game.memory-active .game3d{filter:contrast(1.12) saturate(.62) brightness(.90)}
 
 
+  
+    /* v40 — HUD + PHONE + 307 + MENU visual pass */
+    #game .survival-hud{
+      gap:4px;
+      opacity:.76;
+      transition:opacity .28s ease,transform .28s ease,filter .28s ease
+    }
+    #game .lives-label{
+      font-size:7px!important;
+      letter-spacing:.34em!important;
+      color:rgba(232,235,230,.38)!important
+    }
+    #game .life-heart{
+      position:relative;
+      width:23px;height:15px;
+      font-size:0!important;
+      display:inline-block;
+      color:#f2f2ed!important;
+      filter:none!important;
+      opacity:.92;
+      transform:rotate(var(--eye-tilt,0deg));
+      transition:opacity .2s ease,transform .2s ease,filter .2s ease
+    }
+    #game .life-heart:nth-child(1){--eye-tilt:-3deg}
+    #game .life-heart:nth-child(2){--eye-tilt:2deg}
+    #game .life-heart:nth-child(3){--eye-tilt:-1deg}
+    #game .life-heart:before{
+      content:"";
+      position:absolute;inset:2px 0;
+      border:1px solid rgba(245,245,239,.72);
+      border-radius:50% 50% 48% 52% / 58% 58% 42% 42%;
+      transform:skewX(-6deg)
+    }
+    #game .life-heart:after{
+      content:"";
+      position:absolute;left:50%;top:50%;
+      width:4px;height:4px;border-radius:50%;
+      background:#f3f3ee;
+      transform:translate(-50%,-50%);
+      box-shadow:0 0 6px rgba(255,255,255,.25)
+    }
+    #game .life-heart.lost{opacity:.16!important}
+    #game .life-heart.lost:after{background:transparent;box-shadow:none}
+    #game.hud-stress .survival-hud{
+      opacity:.42;
+      transform:translate(-1px,1px) rotate(-.35deg);
+      filter:blur(.15px)
+    }
+    #game.hud-stress .life-heart:not(.lost){
+      animation:hudEyeTwitch .62s steps(2,end) infinite
+    }
+    @keyframes hudEyeTwitch{
+      0%,76%,100%{transform:translate(0,0) rotate(var(--eye-tilt,0deg))}
+      82%{transform:translate(-1px,1px) rotate(-5deg)}
+      90%{transform:translate(1px,-1px) rotate(4deg)}
+    }
+    #game .energy-hud{
+      width:min(154px,38vw)!important;
+      opacity:.66;
+      transition:opacity .25s ease,filter .25s ease
+    }
+    #game .energy-shell{
+      height:3px!important;border:0!important;background:rgba(255,255,255,.08)!important;
+      clip-path:polygon(0 0,100% 20%,97% 100%,1% 75%)!important
+    }
+    #game .energy-fill{
+      background:#eceee9!important;
+      box-shadow:0 0 6px rgba(255,255,255,.12)!important
+    }
+    #game.hud-stress .energy-hud{opacity:.38;filter:blur(.15px)}
+    #game .objective{
+      text-shadow:0 2px 10px #000,1px 0 rgba(255,255,255,.04)!important
+    }
+    #game.memory-active .objective{
+      animation:objectiveMemorySlip 1.3s steps(2,end) infinite
+    }
+    @keyframes objectiveMemorySlip{
+      0%,82%,100%{transform:translateX(0);letter-spacing:.22em}
+      86%{transform:translateX(-3px);letter-spacing:.28em}
+      91%{transform:translateX(2px);letter-spacing:.17em}
+    }
+
+    .phone-device{
+      box-shadow:0 -16px 58px rgba(0,0,0,.86),inset 0 0 0 2px rgba(255,255,255,.025)!important
+    }
+    .phone-screen{
+      background:
+        radial-gradient(circle at 50% -10%,rgba(84,108,116,.11),transparent 36%),
+        linear-gradient(180deg,#0a0e10,#040607)!important
+    }
+    .phone-interference{
+      position:absolute;inset:0;z-index:8;pointer-events:none;opacity:0;
+      background:
+        repeating-linear-gradient(180deg,transparent 0 4px,rgba(220,235,237,.035) 5px,transparent 6px),
+        linear-gradient(90deg,transparent 0 48%,rgba(255,255,255,.025) 50%,transparent 52%);
+      mix-blend-mode:screen
+    }
+    .phone-device.corrupted .phone-interference{
+      opacity:.86;
+      animation:phoneInterference .16s steps(2,end) infinite
+    }
+    .phone-device.corrupted .phone-no-signal{
+      animation:signalCorrupt .72s steps(2,end) infinite
+    }
+    .phone-device.corrupted .message-bubble{
+      position:relative;
+      text-shadow:1px 0 rgba(170,205,210,.12),-1px 0 rgba(110,15,20,.12)
+    }
+    .phone-device.corrupted .message-bubble:after{
+      content:attr(data-ghost);
+      position:absolute;left:10px;right:8px;bottom:-35px;
+      color:rgba(210,225,227,.13);
+      transform:translateX(2px);
+      filter:blur(.2px);
+      pointer-events:none
+    }
+    @keyframes phoneInterference{
+      0%{transform:translate(0,0)}
+      33%{transform:translate(-2px,1px)}
+      66%{transform:translate(2px,-1px)}
+      100%{transform:translate(0,0)}
+    }
+    @keyframes signalCorrupt{
+      0%,64%,100%{opacity:1}
+      68%{opacity:.12;letter-spacing:.38em}
+      78%{opacity:.8;letter-spacing:.08em}
+    }
+
+    #home .corridor-bg{
+      transform:scale(1.035) translate3d(var(--menu-x,0px),var(--menu-y,0px),0);
+      transition:transform .18s ease-out;
+      will-change:transform
+    }
+    .menu-light-breath{
+      position:absolute;inset:0;opacity:.35;
+      background:radial-gradient(circle at 50% 18%,rgba(177,205,214,.10),transparent 17%);
+      animation:menuLightBreath 5.8s ease-in-out infinite
+    }
+    @keyframes menuLightBreath{
+      0%,100%{opacity:.18;filter:brightness(.8)}
+      48%{opacity:.45;filter:brightness(1.08)}
+      52%{opacity:.08;filter:brightness(.55)}
+      57%{opacity:.36;filter:brightness(1)}
+    }
+    .menu-watcher{
+      position:absolute;right:22%;top:28%;width:18px;height:130px;
+      opacity:0;transform:translateY(8px) scaleY(1.08);
+      background:linear-gradient(180deg,#010101 0 18%,#020202 19% 70%,transparent 100%);
+      border-radius:50% 50% 30% 30%;
+      filter:blur(.3px);
+      box-shadow:0 0 26px rgba(0,0,0,.9)
+    }
+    .menu-watcher:before{
+      content:"";position:absolute;left:50%;top:-12px;width:22px;height:28px;
+      transform:translateX(-50%);border-radius:48%;background:#010101
+    }
+    .menu-watcher.show{animation:menuWatcherAppear 2.4s ease both}
+    @keyframes menuWatcherAppear{
+      0%,8%{opacity:0}
+      18%{opacity:.24}
+      62%{opacity:.19}
+      72%{opacity:.04;transform:translateY(6px) scaleY(1.11)}
+      100%{opacity:0}
+    }
+    #home .menu-title{
+      animation:menuTitleBreath 8s ease-in-out infinite
+    }
+    @keyframes menuTitleBreath{
+      0%,100%{filter:url(#hollowDistress) contrast(1.16);transform:translate(-50%,-50%) scale(1)}
+      50%{filter:url(#hollowDistress) contrast(1.22);transform:translate(-50%,-50%) scale(1.006)}
+    }
+
+    .door307-overlay{
+      background:
+        radial-gradient(ellipse at 50% 50%,transparent 0 18%,rgba(0,0,0,.18) 46%,rgba(0,0,0,.78) 100%)!important
+    }
+    .door307-overlay:before{
+      content:"";position:absolute;left:50%;top:50%;
+      width:min(42vw,430px);height:min(74vh,620px);
+      transform:translate(-50%,-50%) scale(.18,.05);
+      border:1px solid rgba(120,125,122,.08);
+      box-shadow:inset 0 0 70px #000,0 0 50px rgba(0,0,0,.92);
+      background:linear-gradient(180deg,rgba(4,5,5,.78),#000 65%);
+      opacity:0
+    }
+    .door307-overlay.active:before{
+      animation:roomUnfold 1.35s cubic-bezier(.12,.72,.12,1) .18s forwards
+    }
+    @keyframes roomUnfold{
+      0%{opacity:0;transform:translate(-50%,-50%) scale(.18,.05)}
+      35%{opacity:.65;transform:translate(-50%,-50%) scale(.56,.72)}
+      100%{opacity:.82;transform:translate(-50%,-50%) scale(1.14,1.04)}
+    }
+    .door307-overlay.active .door307-tentacles{
+      filter:drop-shadow(0 0 16px rgba(0,0,0,.95))
+    }
+
   </style>
 </head>
 <body>
@@ -1872,6 +2069,8 @@
       <div class="menu-fog menu-fog-b"></div>
       <div class="menu-fog menu-fog-c"></div>
       <div id="menuParticles" class="menu-particles"></div>
+      <div id="menuWatcher" class="menu-watcher"></div>
+      <div class="menu-light-breath"></div>
     </div>
     <svg class="menu-filter-defs" width="0" height="0" aria-hidden="true" focusable="false" style="position:absolute">
       <defs>
@@ -1981,7 +2180,7 @@
     <div id="gameReticle" class="game-reticle" aria-hidden="true"></div>
     <button id="interactPrompt" class="interaction-prompt" type="button">Interact</button>
     <div class="survival-hud" aria-label="Lives">
-      <div class="lives-label">Lives</div>
+      <div class="lives-label">Memory</div>
       <div id="livesRow" class="lives-row">
         <span class="life-heart">♥</span>
         <span class="life-heart">♥</span>
@@ -2013,6 +2212,7 @@
       <div class="phone-device">
         <div class="phone-speaker"></div>
         <div class="phone-screen">
+          <div class="phone-interference" aria-hidden="true"></div>
           <div class="phone-status">
             <span>9:17 PM</span>
             <span class="phone-no-signal">NO SIGNAL</span>
@@ -2037,7 +2237,7 @@
               <div class="message-from">Noah Vale</div>
               <div class="message-meta">Received • time unavailable</div>
             </div>
-            <div class="message-bubble">If you wake up inside the building, don't trust the rooms.<br><br>Find me before it remembers you.</div>
+            <div class="message-bubble" data-ghost="Find me before it remembers you.">If you wake up inside the building, don't trust the rooms.<br><br>Find me before it remembers you.</div>
             <div class="message-warning">Message stored locally • network unavailable</div>
           </div>
 
@@ -2974,6 +3174,36 @@
     titleGlitchTimers=[];
   }
 
+  let menuWatcherTimer=null;
+  function scheduleMenuWatcher(){
+    clearTimeout(menuWatcherTimer);
+    const watcher=$('menuWatcher');
+    if(!watcher) return;
+    menuWatcherTimer=setTimeout(()=>{
+      if($('home')?.classList.contains('active')){
+        watcher.classList.remove('show');
+        void watcher.offsetWidth;
+        watcher.classList.add('show');
+      }
+      scheduleMenuWatcher();
+    },9000+Math.random()*15000);
+  }
+
+  function initMenuParallax(){
+    const home=$('home');
+    if(!home||home.dataset.parallaxReady==='1') return;
+    home.dataset.parallaxReady='1';
+    const set=(x,y)=>{
+      home.style.setProperty('--menu-x',(x*7).toFixed(2)+'px');
+      home.style.setProperty('--menu-y',(y*4).toFixed(2)+'px');
+    };
+    home.addEventListener('pointermove',e=>{
+      const r=home.getBoundingClientRect();
+      set((e.clientX-r.left)/r.width-.5,(e.clientY-r.top)/r.height-.5);
+    });
+    home.addEventListener('pointerleave',()=>set(0,0));
+  }
+
   function initMenuAtmosphere(){
     const layer=$('menuParticles');
     if(!layer||layer.dataset.ready==='1') return;
@@ -3009,6 +3239,8 @@
 
       layer.appendChild(p);
     }
+    initMenuParallax();
+    scheduleMenuWatcher();
   }
 
   function initLoading3D(){
@@ -4965,6 +5197,8 @@
           g.tentacleGroup.visible=true;
           const t=Math.min(1,(elapsed-360)/1060);
           const spread=1-Math.pow(1-t,3);
+          const baseDoor=cs.door.userData.side>0?-1.12:1.12;
+          cs.door.userData.targetRotation=baseDoor+Math.sin(now*.018)*.055*spread;
 
           // Whole cluster advances from inside the room to slightly outside the door.
           g.tentacleGroup.position.lerpVectors(cs.mouthStart,cs.mouthDoorEdge,Math.min(1,t*1.35));
@@ -5015,6 +5249,14 @@
 
         g.mouthGroup.visible=true;
         const raw=Math.min(1,(elapsed-1420)/820);
+        const baseDoor=cs.door.userData.side>0?-1.12:1.12;
+        cs.door.userData.targetRotation=baseDoor+Math.sin(now*.024)*.085*(.35+raw);
+
+        // Elias instinctively gives ground as the impossible room unfolds.
+        const retreat=.16*raw*raw;
+        const backDir=new THREE.Vector3(0,0,1).applyQuaternion(g.camera.quaternion);
+        g.camera.position.addScaledVector(backDir,retreat*dt*4.2);
+        g.camera.rotation.z=Math.sin(now*.020)*.012*raw;
         const emerge=raw*raw*(3-2*raw);
         g.mouthGroup.position.lerpVectors(cs.mouthStart,cs.mouthDoorEdge,emerge);
         g.mouthGroup.lookAt(g.camera.position);
@@ -5459,6 +5701,9 @@
         endMemoryBleed();
       }
     }
+
+    const hudStress=!!scareStart||!!door307Cutscene||memoryBleedUntil>now||energy<=25;
+    $('game').classList.toggle('hud-stress',hudStress);
 
     const flicker=Math.sin(now*.013)+Math.sin(now*.037)*.35;
     g.ceilingLights.forEach((entry,index)=>{
@@ -5996,6 +6241,7 @@
     ensureAudio();
     playUIClick('soft');
     phoneMessageRead=true;
+    document.querySelector('.phone-device')?.classList.add('corrupted');
     $('phoneInbox').classList.add('hidden');
     $('phoneMessage').classList.remove('hidden');
   }
@@ -6005,6 +6251,7 @@
     playUIClick('soft');
     $('phoneOverlay').classList.remove('open');
     $('phoneOverlay').setAttribute('aria-hidden','true');
+    document.querySelector('.phone-device')?.classList.remove('corrupted');
     lowerPhoneRig();
 
     setTimeout(()=>{threeRunning=$('game').classList.contains('active')},320);
