@@ -4460,69 +4460,52 @@
         g.camera.rotation.x=0;
       }
 
-      // Phase 2: pause on the open doorway, then reveal the mouth.
-      if(elapsed>=950&&elapsed<1500){
+      // Tentacles erupt first, then the mouth lunges much faster.
+      if(elapsed>=760&&elapsed<1380){
         g.mouthGroup.visible=false;
-        if(black){
-          black.classList.remove('on');
-          black.style.opacity=String(Math.min(.18,(elapsed-950)/550*.18));
+        if(g.tentacleGroup){
+          g.tentacleGroup.visible=true;
+          const t=Math.min(1,(elapsed-760)/620), spread=1-Math.pow(1-t,3);
+          g.tentacleGroup.scale.setScalar(.04+spread);
+          g.tentacleGroup.children.forEach((tentacle,index)=>{
+            tentacle.rotation.z=Math.sin(now*.009+index*.9)*(.08+.08*spread);
+            tentacle.rotation.x=Math.cos(now*.007+index)*.05*spread;
+          });
         }
-      }else if(elapsed>=1500&&elapsed<3550){
+        if(black){ black.classList.remove('on'); black.style.opacity=String(.08+t*.18); }
+      }else if(elapsed>=1380&&elapsed<2580){
         g.mouthGroup.visible=true;
-
-        const raw=Math.min(1,(elapsed-1500)/2050);
-        // Cubic acceleration: starts very slowly, then rushes toward the camera.
-        const rush=raw*raw*raw;
-
-        // Surroundings darken continuously as the mouth occupies more of the view.
-        if(black){
-          black.classList.remove('on');
-          const darkness=Math.min(.92,Math.pow(raw,.82)*.88);
-          black.style.opacity=String(darkness);
-        }
-
-        const cameraForward=new THREE.Vector3(0,0,-1).applyQuaternion(g.camera.quaternion);
-        const mouthEnd=g.camera.position.clone().add(cameraForward.multiplyScalar(.16));
-
+        const raw=Math.min(1,(elapsed-1380)/1200), rush=raw*raw*(3-2*raw);
+        if(!cs.roarPlayed&&raw>.18){ cs.roarPlayed=true; playMonsterRoar(); }
+        if(black){ black.classList.remove('on'); black.style.opacity=String(Math.min(.95,.16+Math.pow(raw,.72)*.82)); }
+        const forward=new THREE.Vector3(0,0,-1).applyQuaternion(g.camera.quaternion);
+        const mouthEnd=g.camera.position.clone().add(forward.multiplyScalar(.10));
         g.mouthGroup.position.lerpVectors(cs.mouthStart,mouthEnd,rush);
         g.mouthGroup.lookAt(g.camera.position);
-
-        const scale=.25+rush*6.4;
-        const twitch=1+Math.sin(now*.011)*.018*(.2+raw);
-        g.mouthGroup.scale.set(scale*twitch,scale*(1-.012*Math.sin(now*.009)),scale);
-        g.mouthGroup.rotation.z=Math.sin(now*.0047)*.035*(.3+raw);
-
-        if(save.sound&&raw>.58&&now-cs.lastMouthSound>170){
+        const scale=.36+rush*7.3, twitch=1+Math.sin(now*.016)*.025*(.25+raw);
+        g.mouthGroup.scale.set(scale*twitch,scale*(1-.018*Math.sin(now*.012)),scale);
+        g.mouthGroup.rotation.z=Math.sin(now*.0065)*.05*(.3+raw);
+        if(save.sound&&raw>.42&&now-cs.lastMouthSound>120){
           cs.lastMouthSound=now;
-          playNoiseBurst(.045,.010+raw*.018,320+raw*360);
-          playTone(64+raw*24,.07,.008+raw*.010,'sine',44);
+          playNoiseBurst(.04,.014+raw*.025,280+raw*520);
+          playTone(58+raw*31,.06,.009+raw*.014,'sine',38);
         }
-      }else if(elapsed>=3550&&elapsed<4050){
-        // The shadow fully closes around the player's view.
-        if(black){
-          black.style.opacity='1';
-          black.classList.remove('on');
-        }
+      }else if(elapsed>=2580&&elapsed<2860){
+        if(black){ black.style.opacity='1'; black.classList.remove('on'); }
         g.mouthGroup.visible=false;
-      }else if(elapsed>=4050&&!cs.teleported){
+        if(g.tentacleGroup) g.tentacleGroup.visible=false;
+      }else if(elapsed>=2860&&!cs.teleported){
         cs.teleported=true;
-
         g.camera.position.set(0,g.baseY,6.4);
-        lookState.yaw=0;
-        lookState.pitch=0;
-        g.camera.rotation.set(0,0,0);
+        lookState.yaw=0; lookState.pitch=0; g.camera.rotation.set(0,0,0);
         cs.door.userData.targetRotation=0;
-
-        if(black){
-          black.classList.remove('on');
-          black.style.opacity='';
-        }
+        if(black){ black.classList.remove('on'); black.style.opacity=''; }
+        if(g.tentacleGroup) g.tentacleGroup.visible=false;
         $('game').classList.remove('door-cutscene');
-        stopDoor307Tension(.18);
+        stopDoor307Tension(.14);
         door307Cutscene=null;
         threeRunning=true;
         setInteractionTarget(null);
-        setTimeout(()=>speakElias("No... I've been here before.",3000,'afraid'),260);
       }
     }
 
