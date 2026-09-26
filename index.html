@@ -1495,6 +1495,202 @@
     }
 
 
+  
+    /* v0.32 difficulty / saves / distressed gameplay UI */
+    .choice-screen{
+      padding:0;
+      align-items:center;
+      justify-content:center;
+      overflow:auto;
+      background:
+        radial-gradient(ellipse at 50% 24%,rgba(65,75,78,.10),transparent 35%),
+        linear-gradient(180deg,#07090a 0%,#020303 62%,#000 100%);
+      color:#f2f2ef
+    }
+    .choice-noise,.choice-vignette{position:absolute;inset:0;pointer-events:none}
+    .choice-noise{
+      opacity:.18;
+      background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.82' numOctaves='4' seed='19'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='.34'/%3E%3C/svg%3E");
+      animation:choiceNoise .16s steps(2,end) infinite
+    }
+    .choice-vignette{box-shadow:inset 0 0 130px 54px rgba(0,0,0,.88)}
+    @keyframes choiceNoise{0%{transform:translate(0)}25%{transform:translate(-1%,1%)}50%{transform:translate(1%,-1%)}75%{transform:translate(1%,1%)}100%{transform:translate(0)}}
+    .choice-wrap{
+      position:relative;
+      z-index:2;
+      width:min(94vw,980px);
+      min-height:min(88dvh,760px);
+      padding:clamp(60px,9vh,96px) clamp(18px,5vw,60px) 40px;
+      display:flex;
+      flex-direction:column;
+      justify-content:center
+    }
+    .choice-back{
+      position:absolute;
+      left:clamp(18px,4vw,48px);
+      top:max(20px,env(safe-area-inset-top));
+      border:0;
+      background:transparent;
+      color:#f0f0ec;
+      font:600 11px Georgia,'Times New Roman',serif;
+      letter-spacing:.24em;
+      transform:rotate(-1.4deg);
+      opacity:.72
+    }
+    .choice-kicker{
+      color:rgba(235,235,230,.42);
+      font:600 9px Georgia,'Times New Roman',serif;
+      letter-spacing:.36em;
+      text-align:center;
+      margin-bottom:10px;
+      transform:rotate(.25deg)
+    }
+    .choice-title{
+      margin:0 0 clamp(26px,5vh,50px);
+      color:#f4f4ef;
+      font:800 clamp(38px,8vw,88px) Georgia,'Times New Roman',serif;
+      letter-spacing:.15em;
+      text-align:center;
+      text-shadow:0 2px 18px #000;
+      transform:rotate(-.35deg)
+    }
+    .difficulty-grid{
+      display:grid;
+      grid-template-columns:repeat(3,minmax(0,1fr));
+      gap:clamp(12px,2.2vw,24px)
+    }
+    .difficulty-card{
+      position:relative;
+      min-height:260px;
+      padding:28px 22px 24px;
+      border:1px solid rgba(255,255,255,.22);
+      background:linear-gradient(160deg,rgba(14,16,17,.86),rgba(2,3,3,.76));
+      color:#f3f3ef;
+      text-align:left;
+      clip-path:polygon(2% 0,98% 2%,100% 94%,94% 100%,3% 97%,0 6%);
+      box-shadow:0 22px 42px rgba(0,0,0,.5);
+      transition:transform .15s ease,background .15s ease,filter .15s ease
+    }
+    .difficulty-card:nth-child(1){transform:rotate(-.8deg)}
+    .difficulty-card:nth-child(2){transform:rotate(.45deg) translateY(5px)}
+    .difficulty-card:nth-child(3){transform:rotate(-.35deg) translateY(-2px)}
+    .difficulty-card:active{transform:scale(.985) rotate(.2deg);background:#0d0f10;filter:brightness(1.25)}
+    .difficulty-name{
+      display:block;
+      margin-bottom:26px;
+      font:800 clamp(24px,4vw,42px) Georgia,'Times New Roman',serif;
+      letter-spacing:.17em
+    }
+    .difficulty-line{
+      display:block;
+      margin:9px 0;
+      color:rgba(242,242,238,.74);
+      font:600 10px Georgia,'Times New Roman',serif;
+      letter-spacing:.18em;
+      line-height:1.35
+    }
+    .difficulty-whisper{
+      position:absolute;
+      left:22px;
+      right:22px;
+      bottom:20px;
+      color:rgba(240,240,235,.34);
+      font:italic 12px Georgia,'Times New Roman',serif;
+      letter-spacing:.08em
+    }
+    .save-slot-list{
+      display:grid;
+      gap:13px;
+      max-height:58dvh;
+      overflow:auto;
+      padding:5px 4px 20px
+    }
+    .save-slot{
+      width:100%;
+      padding:18px 20px;
+      border:1px solid rgba(255,255,255,.18);
+      background:linear-gradient(95deg,rgba(12,14,15,.88),rgba(3,4,5,.75));
+      color:#f4f4ef;
+      text-align:left;
+      clip-path:polygon(0 4%,97% 0,100% 82%,96% 100%,1% 96%);
+      transform:rotate(var(--slot-tilt,-.25deg))
+    }
+    .save-slot-title{display:block;font:700 16px Georgia,'Times New Roman',serif;letter-spacing:.18em}
+    .save-slot-meta{display:block;margin-top:7px;color:rgba(245,245,240,.5);font:600 9px Georgia,'Times New Roman',serif;letter-spacing:.17em;text-transform:uppercase}
+    .save-slot-memory{display:block;margin-top:7px;color:rgba(245,245,240,.34);font:italic 11px Georgia,'Times New Roman',serif;letter-spacing:.06em}
+    .no-saves{text-align:center;color:rgba(235,235,230,.38);font:600 12px Georgia,'Times New Roman',serif;letter-spacing:.27em;padding:42px 10px}
+
+    /* difficulty darkness affects only the hallway art, not the HUD */
+    #game.difficulty-hard .game3d{filter:brightness(.60) contrast(1.06)}
+    #game.difficulty-hollow .game3d{filter:brightness(.40) contrast(1.10)}
+    #game.difficulty-hard .prologue-scene{filter:brightness(.45) contrast(1.2) saturate(.62)}
+    #game.difficulty-hollow .prologue-scene{filter:brightness(.30) contrast(1.24) saturate(.58)}
+
+    /* imperfect white-only horror controls; phone UI intentionally excluded */
+    #game .move-pad button,
+    #game .flashlight-btn,
+    #game .sprint-btn,
+    #game .interaction-prompt,
+    #game .game-actions button,
+    #game .storybox button{
+      color:#f3f3ef!important;
+      background:rgba(0,0,0,.24)!important;
+      border:1px solid rgba(245,245,240,.34)!important;
+      border-radius:0!important;
+      box-shadow:0 3px 12px rgba(0,0,0,.48)!important;
+      font-family:Georgia,'Times New Roman',serif!important;
+      font-weight:700!important;
+      letter-spacing:.16em!important;
+      text-transform:uppercase!important;
+      text-shadow:1px 1px 0 #000,-1px 0 0 rgba(255,255,255,.10)!important;
+      clip-path:polygon(3% 0,95% 4%,100% 83%,91% 100%,2% 96%,0 14%)
+    }
+    #game .move-up{transform:rotate(-2.4deg)}
+    #game .move-left{transform:rotate(1.8deg) translateX(-2px)}
+    #game .move-right{transform:rotate(-1deg) translateY(2px)}
+    #game .move-down{transform:rotate(2.1deg)}
+    #game .flashlight-btn{transform:rotate(-1.2deg)}
+    #game .sprint-btn{transform:rotate(1.6deg)}
+    #game .interaction-prompt{transform:translate(-50%,8px) rotate(-.7deg)}
+    #game .interaction-prompt.visible{transform:translate(-50%,0) rotate(-.7deg)}
+    #game .energy-fill{background:#f0f0ed!important;box-shadow:0 0 7px rgba(255,255,255,.12)!important}
+    #game .energy-fill.low{background:#c9c9c5!important}
+    #game .energy-meta,#game .lives-label,#game .look-hint,#game .chapter,#game .objective{font-family:Georgia,'Times New Roman',serif!important;color:rgba(245,245,240,.62)!important}
+    #game .objective:before{color:rgba(245,245,240,.34)!important}
+
+    /* white hearts with an eye embedded in each life */
+    .life-heart{
+      position:relative!important;
+      display:inline-block;
+      color:#f3f3ef!important;
+      font-size:22px!important;
+      filter:drop-shadow(0 2px 5px #000)!important
+    }
+    .life-heart:after{
+      content:"";
+      position:absolute;
+      left:50%;
+      top:48%;
+      width:9px;
+      height:5px;
+      transform:translate(-50%,-50%) rotate(-5deg);
+      border:1px solid #0b0c0d;
+      border-radius:50% 48% 50% 52%;
+      background:radial-gradient(circle at 50% 50%,#090a0b 0 1.35px,#f2f2ee 1.6px 100%);
+      box-shadow:0 0 0 1px rgba(255,255,255,.10)
+    }
+    .life-heart.lost{color:#5c5c59!important;opacity:.26!important}
+    .life-heart.lost:after{opacity:.18}
+    .life-heart.unavailable{display:none!important}
+
+    @media(max-width:760px){
+      .difficulty-grid{grid-template-columns:1fr;gap:12px}
+      .difficulty-card{min-height:150px;padding:20px 18px 18px}
+      .difficulty-whisper{position:static;display:block;margin-top:16px}
+      .choice-wrap{justify-content:flex-start;padding-top:78px}
+      .choice-title{margin-bottom:22px}
+    }
+
   </style>
 </head>
 <body>
@@ -1582,6 +1778,51 @@
       <div class="setting-row"><span>Reset progress</span><button id="resetBtn" style="background:none;border:0;color:#b7aea5">RESET</button></div>
     </div>
   </section>
+  <section id="difficultySelect" class="screen choice-screen">
+    <div class="choice-noise"></div>
+    <div class="choice-vignette"></div>
+    <div class="choice-wrap">
+      <button id="difficultyBackBtn" class="choice-back" type="button">‹ BACK</button>
+      <div class="choice-kicker">CHOOSE HOW THE HOUSE REMEMBERS YOU</div>
+      <h2 class="choice-title">DIFFICULTY</h2>
+      <div class="difficulty-grid">
+        <button class="difficulty-card normal" type="button" data-difficulty="normal">
+          <span class="difficulty-name">NORMAL</span>
+          <span class="difficulty-line">STANDARD DARKNESS</span>
+          <span class="difficulty-line">3 LIVES</span>
+          <span class="difficulty-line">SPRINT REFILL: 10 SECONDS</span>
+          <span class="difficulty-whisper">The house is quiet. For now.</span>
+        </button>
+        <button class="difficulty-card hard" type="button" data-difficulty="hard">
+          <span class="difficulty-name">HARD</span>
+          <span class="difficulty-line">HALLWAYS 40% DARKER</span>
+          <span class="difficulty-line">2 LIVES</span>
+          <span class="difficulty-line">SPRINT REFILL: 12 SECONDS</span>
+          <span class="difficulty-whisper">It notices when you run.</span>
+        </button>
+        <button class="difficulty-card hollow" type="button" data-difficulty="hollow">
+          <span class="difficulty-name">HOLLOW</span>
+          <span class="difficulty-line">HALLWAYS 60% DARKER</span>
+          <span class="difficulty-line">1 LIFE</span>
+          <span class="difficulty-line">SPRINT REFILL: 14 SECONDS</span>
+          <span class="difficulty-whisper">One mistake. One memory.</span>
+        </button>
+      </div>
+    </div>
+  </section>
+
+  <section id="continueSelect" class="screen choice-screen">
+    <div class="choice-noise"></div>
+    <div class="choice-vignette"></div>
+    <div class="choice-wrap continue-wrap">
+      <button id="continueBackBtn" class="choice-back" type="button">‹ BACK</button>
+      <div class="choice-kicker">MEMORIES LEFT INSIDE HOLLOW HOUSE</div>
+      <h2 class="choice-title">CONTINUE</h2>
+      <div id="saveSlotList" class="save-slot-list"></div>
+      <div id="noSavesText" class="no-saves">NO MEMORY REMAINS.</div>
+    </div>
+  </section>
+
   <section id="prologueTitle" class="screen">
     <div class="prologue-title-wrap">
       <span id="prologueType" class="prologue-type"></span><span class="prologue-cursor" aria-hidden="true"></span>
@@ -1674,6 +1915,16 @@
   const screens=[...document.querySelectorAll('.screen')];
   const $=id=>document.getElementById(id);
   const save=JSON.parse(localStorage.getItem('hollowSave')||'{"progress":0,"sound":true,"vibe":true}');
+  const DIFFICULTIES={
+    normal:{key:'normal',label:'NORMAL',lives:3,refillDelay:10000,darkness:0},
+    hard:{key:'hard',label:'HARD',lives:2,refillDelay:12000,darkness:.40},
+    hollow:{key:'hollow',label:'HOLLOW',lives:1,refillDelay:14000,darkness:.60}
+  };
+  let saveSlots=[];
+  try{saveSlots=JSON.parse(localStorage.getItem('hollowSaveSlots')||'[]')}catch(_){saveSlots=[]}
+  if(!Array.isArray(saveSlots)) saveSlots=[];
+  let activeSlotId=save.activeSlotId||null;
+
 
   let audioCtx=null;
   let masterGain=null;
@@ -1719,8 +1970,27 @@
   const MAX_ENERGY=100;
   const SPRINT_DRAIN_PER_SEC=10;
   const ENERGY_REFILL_PER_SEC=8;
-  const ENERGY_REFILL_DELAY_MS=10000;
-  save.lives=Number.isFinite(save.lives)?Math.max(0,Math.min(3,save.lives)):3;
+  let ENERGY_REFILL_DELAY_MS=10000;
+  save.difficulty=DIFFICULTIES[save.difficulty]?save.difficulty:'normal';
+  save.maxLives=DIFFICULTIES[save.difficulty].lives;
+  ENERGY_REFILL_DELAY_MS=DIFFICULTIES[save.difficulty].refillDelay;
+  save.lives=Number.isFinite(save.lives)?Math.max(0,Math.min(save.maxLives,save.lives)):save.maxLives;
+
+  if(save.progress>0&&saveSlots.length===0){
+    activeSlotId=activeSlotId||('legacy-'+Date.now().toString(36));
+    save.activeSlotId=activeSlotId;
+    saveSlots.push({
+      id:activeSlotId,
+      difficulty:save.difficulty,
+      progress:save.progress,
+      lives:save.lives,
+      updatedAt:Date.now(),
+      createdAt:Date.now(),
+      chapter:'Prologue • Wake Up'
+    });
+    localStorage.setItem('hollowSaveSlots',JSON.stringify(saveSlots));
+  }
+
 
   function ensureAudio(){
     if(!audioCtx){
@@ -2995,6 +3265,92 @@
     floor.position.set(0,0,-11.5);
     scene.add(floor);
 
+    // Damp puddles catch the fluorescent light without blocking movement.
+    const puddles=[];
+    const puddleMat=new THREE.MeshStandardMaterial({
+      color:0x12191c,
+      roughness:.16,
+      metalness:.62,
+      transparent:true,
+      opacity:.48,
+      side:THREE.DoubleSide
+    });
+    [
+      [-1.55,-1.7,1.15,.54,.18],
+      [1.45,-6.4,.92,.42,-.31],
+      [-.45,-11.8,1.38,.48,.08],
+      [1.9,-17.4,.74,.34,.42],
+      [-1.6,-23.2,1.08,.39,-.22]
+    ].forEach(([x,z,sx,sy,rot])=>{
+      const puddle=new THREE.Mesh(new THREE.CircleGeometry(.72,32),puddleMat.clone());
+      puddle.rotation.x=-Math.PI/2;
+      puddle.rotation.z=rot;
+      puddle.scale.set(sx,sy,1);
+      puddle.position.set(x,.012,z);
+      puddle.receiveShadow=true;
+      scene.add(puddle);
+      puddles.push(puddle);
+    });
+
+    // Small roaches wander independently across the wet floor.
+    const roaches=[];
+    const roachBodyMat=new THREE.MeshStandardMaterial({color:0x120d09,roughness:.88,metalness:.04});
+    const roachLegMat=new THREE.MeshBasicMaterial({color:0x070504});
+    for(let i=0;i<8;i++){
+      const bug=new THREE.Group();
+      const body=new THREE.Mesh(new THREE.SphereGeometry(.055,8,6),roachBodyMat);
+      body.scale.set(.75,.34,1.45);
+      body.position.y=.052;
+      bug.add(body);
+      const head=new THREE.Mesh(new THREE.SphereGeometry(.031,7,5),roachBodyMat);
+      head.scale.set(.9,.6,1);
+      head.position.set(0,.047,-.074);
+      bug.add(head);
+      [-1,1].forEach(side=>{
+        for(let j=0;j<3;j++){
+          const leg=new THREE.Mesh(new THREE.BoxGeometry(.055,.006,.008),roachLegMat);
+          leg.position.set(side*.045,.032,-.045+j*.047);
+          leg.rotation.y=side*(.45+j*.18);
+          bug.add(leg);
+        }
+      });
+      bug.position.set((Math.random()-.5)*5.6,.01,4-Math.random()*30);
+      bug.rotation.y=Math.random()*Math.PI*2;
+      bug.userData.angle=bug.rotation.y;
+      bug.userData.speed=.22+Math.random()*.36;
+      bug.userData.turnAt=performance.now()+500+Math.random()*2200;
+      scene.add(bug);
+      roaches.push(bug);
+    }
+
+    // A mouse occasionally darts across the corridor, then disappears again.
+    const mouse=new THREE.Group();
+    const mouseMat=new THREE.MeshStandardMaterial({color:0x161514,roughness:.93});
+    const mouseBody=new THREE.Mesh(new THREE.SphereGeometry(.12,12,8),mouseMat);
+    mouseBody.scale.set(1.55,.62,.88);
+    mouseBody.position.y=.105;
+    mouse.add(mouseBody);
+    const mouseHead=new THREE.Mesh(new THREE.SphereGeometry(.075,10,7),mouseMat);
+    mouseHead.position.set(.16,.12,0);
+    mouse.add(mouseHead);
+    [-1,1].forEach(side=>{
+      const ear=new THREE.Mesh(new THREE.SphereGeometry(.028,8,6),mouseMat);
+      ear.position.set(.15,.18,side*.052);
+      mouse.add(ear);
+    });
+    const tailCurve=new THREE.CatmullRomCurve3([
+      new THREE.Vector3(-.16,.10,0),
+      new THREE.Vector3(-.28,.08,.025),
+      new THREE.Vector3(-.43,.055,-.02),
+      new THREE.Vector3(-.57,.04,.035)
+    ]);
+    const tail=new THREE.Mesh(new THREE.TubeGeometry(tailCurve,16,.009,5,false),mouseMat);
+    mouse.add(tail);
+    mouse.visible=false;
+    mouse.userData.active=false;
+    mouse.userData.nextRun=performance.now()+7000+Math.random()*9000;
+    scene.add(mouse);
+
     const ceiling=new THREE.Mesh(new THREE.PlaneGeometry(8,40),ceilingMat);
     ceiling.rotation.x=Math.PI/2;
     ceiling.position.set(0,4,-11.5);
@@ -3704,6 +4060,7 @@
     threeGame={
       renderer,scene,camera,ceilingLights,phoneRig,dustPoints,emergencyLight,
       interactables,doorMeshes,callBox,callLight,sign,flashlight,hollowFigure,mouthGroup,
+      puddles,roaches,mouse,
       raycaster:new THREE.Raycaster(),centerRay:new THREE.Vector2(0,0),
       lastTime:performance.now(),
       raf:0,
@@ -4058,6 +4415,48 @@
     const dt=Math.min(.04,Math.max(.001,(now-g.lastTime)/1000));
     g.lastTime=now;
 
+    // Roaches continuously crawl and make irregular turns along the hall.
+    if(g.roaches){
+      g.roaches.forEach((bug,index)=>{
+        if(now>=bug.userData.turnAt){
+          bug.userData.angle+=(Math.random()-.5)*1.45;
+          bug.userData.turnAt=now+650+Math.random()*2400;
+        }
+        const a=bug.userData.angle;
+        bug.position.x+=Math.sin(a)*bug.userData.speed*dt;
+        bug.position.z+=Math.cos(a)*bug.userData.speed*dt;
+        if(Math.abs(bug.position.x)>3.45||bug.position.z>6.4||bug.position.z<-29.2){
+          bug.userData.angle+=Math.PI*.75+(Math.random()-.5)*.9;
+          bug.position.x=Math.max(-3.35,Math.min(3.35,bug.position.x));
+          bug.position.z=Math.max(-29,Math.min(6.2,bug.position.z));
+        }
+        bug.rotation.y=bug.userData.angle;
+        bug.position.y=.012+Math.abs(Math.sin(now*.012+index))*.006;
+      });
+    }
+
+    if(g.mouse){
+      const mouse=g.mouse;
+      if(!mouse.userData.active&&now>=mouse.userData.nextRun){
+        mouse.userData.active=true;
+        mouse.userData.dir=Math.random()<.5?1:-1;
+        mouse.userData.z=-1-Math.random()*24;
+        mouse.position.set(mouse.userData.dir>0?-3.85:3.85,.01,mouse.userData.z);
+        mouse.rotation.y=mouse.userData.dir>0?Math.PI/2:-Math.PI/2;
+        mouse.visible=true;
+      }
+      if(mouse.userData.active){
+        mouse.position.x+=mouse.userData.dir*3.0*dt;
+        mouse.position.z=mouse.userData.z+Math.sin(now*.015)*.08;
+        mouse.rotation.z=Math.sin(now*.027)*.025;
+        if(Math.abs(mouse.position.x)>4.25){
+          mouse.visible=false;
+          mouse.userData.active=false;
+          mouse.userData.nextRun=now+11000+Math.random()*18000;
+        }
+      }
+    }
+
     if(door307Cutscene){
       const cs=door307Cutscene;
       const elapsed=now-cs.start;
@@ -4337,9 +4736,124 @@
     phoneRigTarget=0;
   }
 
+  function getDifficultyProfile(){
+    return DIFFICULTIES[save.difficulty]||DIFFICULTIES.normal;
+  }
+
+  function applyDifficulty(){
+    const profile=getDifficultyProfile();
+    save.maxLives=profile.lives;
+    ENERGY_REFILL_DELAY_MS=profile.refillDelay;
+    save.lives=Math.max(0,Math.min(profile.lives,Number.isFinite(save.lives)?save.lives:profile.lives));
+    const game=$('game');
+    game.classList.remove('difficulty-normal','difficulty-hard','difficulty-hollow');
+    game.classList.add('difficulty-'+profile.key);
+    updateLivesHud();
+  }
+
+  function saveSlotSnapshot(){
+    if(!activeSlotId) return;
+    const index=saveSlots.findIndex(slot=>slot.id===activeSlotId);
+    const snapshot={
+      id:activeSlotId,
+      difficulty:save.difficulty||'normal',
+      progress:Number(save.progress)||0,
+      lives:Number(save.lives)||0,
+      maxLives:getDifficultyProfile().lives,
+      updatedAt:Date.now(),
+      createdAt:index>=0?(saveSlots[index].createdAt||Date.now()):Date.now(),
+      chapter:'Prologue • Wake Up'
+    };
+    if(index>=0) saveSlots[index]={...saveSlots[index],...snapshot};
+    else saveSlots.unshift(snapshot);
+    saveSlots.sort((a,b)=>(b.updatedAt||0)-(a.updatedAt||0));
+    localStorage.setItem('hollowSaveSlots',JSON.stringify(saveSlots));
+  }
+
+  function renderContinueSlots(){
+    const list=$('saveSlotList');
+    const empty=$('noSavesText');
+    if(!list||!empty) return;
+    list.innerHTML='';
+    const slots=[...saveSlots].sort((a,b)=>(b.updatedAt||0)-(a.updatedAt||0)).slice(0,8);
+    empty.style.display=slots.length?'none':'block';
+    slots.forEach((slot,index)=>{
+      const profile=DIFFICULTIES[slot.difficulty]||DIFFICULTIES.normal;
+      const btn=document.createElement('button');
+      btn.type='button';
+      btn.className='save-slot';
+      btn.style.setProperty('--slot-tilt',((index%2?-1:1)*(.18+(index%3)*.13)).toFixed(2)+'deg');
+      const stamp=slot.updatedAt?new Date(slot.updatedAt).toLocaleString():'time unknown';
+      btn.innerHTML=
+        '<span class="save-slot-title">MEMORY '+String(index+1).padStart(2,'0')+'</span>'+
+        '<span class="save-slot-meta">'+profile.label+' • '+profile.lives+' '+(profile.lives===1?'LIFE':'LIVES')+' • '+(slot.chapter||'PROLOGUE • WAKE UP')+'</span>'+
+        '<span class="save-slot-memory">'+stamp+'</span>';
+      btn.addEventListener('click',()=>continueFromSlot(slot.id));
+      list.appendChild(btn);
+    });
+  }
+
+  function continueFromSlot(id){
+    const slot=saveSlots.find(item=>item.id===id);
+    if(!slot) return;
+    ensureAudio();
+    buzz();
+    playUIClick('continue');
+    activeSlotId=slot.id;
+    save.activeSlotId=slot.id;
+    save.difficulty=DIFFICULTIES[slot.difficulty]?slot.difficulty:'normal';
+    save.progress=Number(slot.progress)||1;
+    save.maxLives=getDifficultyProfile().lives;
+    save.lives=Number.isFinite(Number(slot.lives))?Math.max(0,Math.min(save.maxLives,Number(slot.lives))):save.maxLives;
+    phoneAutoTriggered=save.progress>=3;
+    firstScareTriggered=save.progress>=5;
+    energy=100;
+    lastSprintUse=0;
+    applyDifficulty();
+    localStorage.setItem('hollowSave',JSON.stringify(save));
+    stopMenuAmbience(.3);
+    stopMenuMusic(.45);
+    show('introStatic');
+    playStatic(1.45,.18);
+    setTimeout(()=>{
+      stopStatic(.04);
+      show('game');
+    },1450);
+  }
+
+  function beginDifficultyGame(key){
+    const profile=DIFFICULTIES[key]||DIFFICULTIES.normal;
+    ensureAudio();
+    buzz();
+    playUIClick(key==='hollow'?'new':'soft');
+    activeSlotId='memory-'+Date.now().toString(36)+'-'+Math.random().toString(36).slice(2,6);
+    save.activeSlotId=activeSlotId;
+    save.difficulty=profile.key;
+    save.maxLives=profile.lives;
+    save.lives=profile.lives;
+    save.progress=1;
+    phoneAutoTriggered=false;
+    firstScareTriggered=false;
+    scareStart=0;
+    door307Cutscene=null;
+    flashlightOn=false;
+    energy=100;
+    lastSprintUse=0;
+    setSprint(false);
+    applyDifficulty();
+    saveSlotSnapshot();
+    localStorage.setItem('hollowSave',JSON.stringify(save));
+    clearPrologueTitleTimers();
+    playPrologueTitle();
+  }
+
   function updateLivesHud(){
     const hearts=[...document.querySelectorAll('#livesRow .life-heart')];
-    hearts.forEach((heart,index)=>heart.classList.toggle('lost',index>=save.lives));
+    const maxLives=(DIFFICULTIES[save.difficulty]||DIFFICULTIES.normal).lives;
+    hearts.forEach((heart,index)=>{
+      heart.classList.toggle('unavailable',index>=maxLives);
+      heart.classList.toggle('lost',index<maxLives&&index>=save.lives);
+    });
   }
 
   function updateEnergyHud(){
@@ -4374,9 +4888,13 @@
   }
 
   const persist=()=>{
-    save.lives=Math.max(0,Math.min(3,save.lives));
+    const profile=getDifficultyProfile();
+    save.maxLives=profile.lives;
+    save.lives=Math.max(0,Math.min(profile.lives,save.lives));
+    save.activeSlotId=activeSlotId;
     localStorage.setItem('hollowSave',JSON.stringify(save));
-    $('continueBtn').disabled=!save.progress;
+    if(activeSlotId&&save.progress>0) saveSlotSnapshot();
+    $('continueBtn').disabled=saveSlots.length===0&&!save.progress;
     updateLivesHud();
   };
 
@@ -4393,13 +4911,15 @@
     screens.forEach(s=>s.classList.remove('active','fade-out','fade-slow'));
     $(id).classList.add('active');
 
-    if(id==='game') startThreeGame();
-    else pauseThreeGame();
+    if(id==='game'){
+      applyDifficulty();
+      startThreeGame();
+    }else pauseThreeGame();
 
     if(id==='introLoading') startLoading3D();
     else stopLoading3D();
 
-    if(id==='home'||id==='settings'){
+    if(id==='home'||id==='settings'||id==='difficultySelect'||id==='continueSelect'){
       startMenuAmbience();
       startMenuMusic();
       clearTitleGlitchAudio();
@@ -4533,25 +5053,15 @@
     ensureAudio();
     buzz();
     playUIClick('new');
-
-    save.progress=1;
-    phoneAutoTriggered=false;
-    firstScareTriggered=false;
-    scareStart=0;
-    door307Cutscene=null;
-    flashlightOn=false;
-    persist();
     stopMenuAmbience(.4);
     stopMenuMusic(.55);
     clearTitleGlitchAudio();
     clearPrologueTitleTimers();
-
     show('introStatic');
     playStatic(2,.2);
-
     setTimeout(()=>{
       stopStatic(.04);
-      playPrologueTitle();
+      show('difficultySelect');
     },2000);
   }
 
@@ -4563,9 +5073,24 @@
     ensureAudio();
     buzz();
     playUIClick('continue');
-    stopMenuAmbience(.35);
-    stopMenuMusic(.5);
-    show('game');
+    renderContinueSlots();
+    show('continueSelect');
+  };
+
+  document.querySelectorAll('[data-difficulty]').forEach(btn=>{
+    btn.addEventListener('click',()=>beginDifficultyGame(btn.dataset.difficulty));
+  });
+
+  $('difficultyBackBtn').onclick=()=>{
+    ensureAudio();
+    playUIClick('soft');
+    show('home');
+  };
+
+  $('continueBackBtn').onclick=()=>{
+    ensureAudio();
+    playUIClick('soft');
+    show('home');
   };
 
   $('settingsBtn').onclick=()=>{
@@ -4618,7 +5143,14 @@
     ensureAudio();
     playUIClick('soft');
     save.progress=0;
+    save.difficulty='normal';
+    save.maxLives=3;
     save.lives=3;
+    activeSlotId=null;
+    save.activeSlotId=null;
+    saveSlots=[];
+    localStorage.removeItem('hollowSaveSlots');
+    ENERGY_REFILL_DELAY_MS=10000;
     phoneAutoTriggered=false;
     firstScareTriggered=false;
     scareStart=0;
@@ -4735,6 +5267,8 @@
   initMenuAtmosphere();
   updateLivesHud();
   updateEnergyHud();
+  applyDifficulty();
+  renderContinueSlots();
   sync();
   runIntro();
 
