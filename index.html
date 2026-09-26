@@ -2284,19 +2284,6 @@
     setTimeout(()=>current.sources.forEach(src=>safeStop(src)),fade*1000+60);
   }
 
-  function playMonsterRoar(){
-    if(!save.sound||!ensureAudio()) return;
-    const now=audioCtx.currentTime, mix=audioCtx.createGain();
-    const low=audioCtx.createOscillator(), growl=audioCtx.createOscillator();
-    const noise=makeNoiseSource(false), filter=audioCtx.createBiquadFilter(), ng=audioCtx.createGain();
-    low.type='sawtooth'; low.frequency.setValueAtTime(62,now); low.frequency.exponentialRampToValueAtTime(34,now+.82);
-    growl.type='square'; growl.frequency.setValueAtTime(97,now); growl.frequency.exponentialRampToValueAtTime(49,now+.72);
-    filter.type='bandpass'; filter.frequency.setValueAtTime(520,now); filter.frequency.exponentialRampToValueAtTime(170,now+.8); filter.Q.value=.7;
-    ng.gain.value=.32;
-    mix.gain.setValueAtTime(.0001,now); mix.gain.linearRampToValueAtTime(.22,now+.07); mix.gain.exponentialRampToValueAtTime(.0001,now+.95);
-    low.connect(mix); growl.connect(mix); noise.connect(filter); filter.connect(ng); ng.connect(mix); mix.connect(sfxBus);
-    low.start(now); growl.start(now); noise.start(now); low.stop(now+1); growl.stop(now+1); noise.stop(now+1);
-  }
 
   function playDistantKnock(){
     if(!save.sound||!ensureAudio()) return;
@@ -4257,7 +4244,6 @@
       mouthStart,
       teleported:false,
       lastMouthSound:0,
-      roarPlayed:false
     };
 
     if(threeGame.tentacleGroup){
@@ -4509,7 +4495,6 @@
         g.mouthGroup.visible=true;
         const raw=Math.min(1,(elapsed-980)/680);
         const rush=Math.pow(raw,.72);
-        if(!cs.roarPlayed&&raw>.08){ cs.roarPlayed=true; playMonsterRoar(); }
         if(black){ black.classList.remove('on'); black.style.opacity=String(Math.min(.97,.18+Math.pow(raw,.55)*.84)); }
 
         const forward=new THREE.Vector3(0,0,-1).applyQuaternion(g.camera.quaternion);
