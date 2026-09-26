@@ -1749,6 +1749,31 @@
     .maw-teeth b:nth-child(2n){height:70%;transform:translateY(4px) rotate(3deg)}
     .maw-teeth b:nth-child(3n){transform:translateY(-2px) rotate(-4deg)}
 
+  
+    /* v0.36 Hollow Man first-reveal atmosphere */
+    .hollow-presence-fx{
+      position:absolute;inset:0;z-index:17;pointer-events:none;opacity:0;overflow:hidden;
+      background:radial-gradient(ellipse at 50% 52%,transparent 0 30%,rgba(0,0,0,.16) 55%,rgba(0,0,0,.72) 100%);
+      transition:opacity .12s linear
+    }
+    .hollow-presence-fx.reveal{opacity:1;animation:presenceBreath 1.05s ease-in-out infinite alternate}
+    .hollow-presence-fx.closer{opacity:1;filter:contrast(1.18)}
+    .hollow-presence-fx.vanish{opacity:.85;animation:presenceCollapse .28s steps(2,end) forwards}
+    .presence-static{position:absolute;inset:-10%;opacity:.12;
+      background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='150' height='150'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.72' numOctaves='3' seed='17'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='.52'/%3E%3C/svg%3E");
+      mix-blend-mode:screen;animation:presenceNoise .075s steps(2,end) infinite}
+    .presence-ring{position:absolute;left:50%;top:52%;width:32vmin;height:32vmin;border:1px solid rgba(220,228,230,.08);
+      border-radius:50%;transform:translate(-50%,-50%) scale(.4);opacity:0}
+    .hollow-presence-fx.reveal .presence-ring{animation:ringPulse 1.2s ease-out infinite}
+    .presence-lines{position:absolute;inset:0;opacity:.18;
+      background:repeating-linear-gradient(180deg,transparent 0 4px,rgba(225,235,236,.05) 5px,transparent 6px);
+      animation:presenceRoll .32s linear infinite}
+    @keyframes presenceNoise{0%{transform:translate(0)}25%{transform:translate(-2%,1%)}50%{transform:translate(1%,-2%)}75%{transform:translate(2%,1%)}100%{transform:translate(0)}}
+    @keyframes presenceRoll{from{background-position:0 -20px}to{background-position:0 40px}}
+    @keyframes ringPulse{0%{opacity:.18;transform:translate(-50%,-50%) scale(.4)}100%{opacity:0;transform:translate(-50%,-50%) scale(2.4)}}
+    @keyframes presenceBreath{from{filter:brightness(.88)}to{filter:brightness(1.06)}}
+    @keyframes presenceCollapse{0%{opacity:1;transform:scale(1)}50%{opacity:.25;transform:scaleX(1.035)}100%{opacity:0;transform:scale(.98)}}
+
   </style>
 </head>
 <body>
@@ -1891,6 +1916,11 @@
     <div class="prologue-scene"></div>
     <canvas id="game3d" class="game3d" aria-label="3D Hollow House hallway"></canvas>
     <div id="scareBlackout" class="scare-blackout" aria-hidden="true"></div>
+    <div id="hollowPresenceFx" class="hollow-presence-fx" aria-hidden="true">
+      <div class="presence-static"></div>
+      <div class="presence-ring"></div>
+      <div class="presence-lines"></div>
+    </div>
     <div id="door307Overlay" class="door307-overlay" aria-hidden="true">
       <div class="door307-tentacles" aria-hidden="true">
         <i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i>
@@ -2028,6 +2058,10 @@
   let phoneAutoTriggered=save.progress>=3;
   let firstScareTriggered=save.progress>=5;
   let scareStart=0;
+  let scareVoiceStage=0;
+  let scareRelocated=false;
+  let scareImpactPlayed=false;
+  let scareSecondImpactPlayed=false;
   let elevatorCalledAt=0;
   let door307Cutscene=null;
   let activeDoor307Tension=null;
@@ -2043,7 +2077,9 @@
     "Great. Of course nobody answers.":"./assets/audio/elias/elias_004_nobody_answers.mp3",
     "This place looks abandoned... but the lights are still on.":"./assets/audio/elias/elias_005_place_looks_abandoned.mp3",
     "Wait... wasn't that door on the other side?":"./assets/audio/elias/elias_006_door_other_side.mp3",
-    "No. No, that's impossible. I already walked past this.":"./assets/audio/elias/elias_007_already_walked_past_this.mp3"
+    "No. No, that's impossible. I already walked past this.":"./assets/audio/elias/elias_007_already_walked_past_this.mp3",
+    "What... is that?":"./assets/audio/elias/elias_008_what_is_that.mp3",
+    "Don't move.":"./assets/audio/elias/elias_009_dont_move.mp3"
   };
   const moveState={forward:false,back:false,left:false,right:false};
   const lookState={active:false,pointerId:null,lastX:0,lastY:0,yaw:0,pitch:0};
@@ -2437,6 +2473,51 @@
       eliasDialogueTimer=setTimeout(finish,ms);
     }).catch(finish);
     return true;
+  }
+
+  function playHollowRevealImpact(strength=1){
+    if(!save.sound||!ensureAudio()) return;
+    const now=audioCtx.currentTime;
+    const low=audioCtx.createOscillator();
+    const sub=audioCtx.createOscillator();
+    const metal=audioCtx.createOscillator();
+    const gain=audioCtx.createGain();
+    const mg=audioCtx.createGain();
+    const noise=makeNoiseSource(false);
+    const bp=audioCtx.createBiquadFilter();
+    const ng=audioCtx.createGain();
+
+    low.type='sawtooth';
+    low.frequency.setValueAtTime(78,now);
+    low.frequency.exponentialRampToValueAtTime(31,now+.68);
+    sub.type='sine';
+    sub.frequency.setValueAtTime(42,now);
+    sub.frequency.exponentialRampToValueAtTime(27,now+.78);
+    metal.type='square';
+    metal.frequency.setValueAtTime(690,now);
+    metal.frequency.exponentialRampToValueAtTime(170,now+.22);
+
+    gain.gain.setValueAtTime(.0001,now);
+    gain.gain.linearRampToValueAtTime(.055*strength,now+.025);
+    gain.gain.exponentialRampToValueAtTime(.0001,now+.82);
+    mg.gain.setValueAtTime(.022*strength,now);
+    mg.gain.exponentialRampToValueAtTime(.0001,now+.26);
+
+    bp.type='bandpass';
+    bp.frequency.setValueAtTime(1500,now);
+    bp.frequency.exponentialRampToValueAtTime(210,now+.50);
+    bp.Q.value=.55;
+    ng.gain.setValueAtTime(.030*strength,now);
+    ng.gain.exponentialRampToValueAtTime(.0001,now+.58);
+
+    low.connect(gain); sub.connect(gain); gain.connect(sfxBus);
+    metal.connect(mg); mg.connect(sfxBus);
+    noise.connect(bp); bp.connect(ng); ng.connect(sfxBus);
+
+    low.start(now); sub.start(now); metal.start(now); noise.start(now);
+    low.stop(now+.86); sub.stop(now+.86); metal.stop(now+.30); noise.stop(now+.62);
+
+    if(save.vibe&&navigator.vibrate) navigator.vibrate(strength>1?[35,35,70]:[28,30,45]);
   }
 
   function playGlitchSound(){
@@ -4124,7 +4205,7 @@
 
     threeGame={
       renderer,scene,camera,ceilingLights,phoneRig,dustPoints,emergencyLight,
-      interactables,doorMeshes,callBox,callLight,sign,flashlight,hollowFigure,mouthGroup,tentacleGroup,
+      interactables,doorMeshes,callBox,callLight,sign,flashlight,hollowFigure,hollowHead,mouthGroup,tentacleGroup,
       puddles,roaches,mouse,
       raycaster:new THREE.Raycaster(),centerRay:new THREE.Vector2(0,0),
       lastTime:performance.now(),
@@ -4525,18 +4606,34 @@
     firstScareTriggered=true;
     save.progress=Math.max(save.progress,5);
     persist();
+
+    threeRunning=false;
+    setSprint(false);
+    setInteractionTarget(null);
+    stopEliasVoice();
+
     scareStart=performance.now();
+    scareVoiceStage=0;
+    scareRelocated=false;
+    scareImpactPlayed=false;
+    scareSecondImpactPlayed=false;
+    eliasNextCueAt=0;
+
+    const fx=$('hollowPresenceFx');
+    if(fx){fx.classList.remove('reveal','closer','vanish');fx.setAttribute('aria-hidden','false');}
 
     const forward=new THREE.Vector3(0,0,-1).applyAxisAngle(new THREE.Vector3(0,1,0),lookState.yaw);
-    const pos=threeGame.camera.position.clone().add(forward.multiplyScalar(12.5));
-    pos.x=Math.max(-1.1,Math.min(1.1,pos.x));
+    const pos=threeGame.camera.position.clone().add(forward.multiplyScalar(12.8));
+    pos.x=Math.max(-.65,Math.min(.65,pos.x));
     pos.y=0;
     pos.z=Math.max(-24.5,Math.min(1.5,pos.z));
     threeGame.hollowFigure.position.copy(pos);
     threeGame.hollowFigure.rotation.y=lookState.yaw+Math.PI;
+    threeGame.hollowFigure.scale.set(1.02,1.20,1.02);
     threeGame.hollowFigure.visible=false;
+    if(threeGame.hollowHead) threeGame.hollowHead.rotation.set(0,0,0);
 
-    toast('The fluorescent lights begin to fail.');
+    toast('The building goes quiet.');
   }
 
   function animateThreeGame(now){
@@ -4789,26 +4886,119 @@
       }
     }
 
-    // First sighting: light flicker -> distant silhouette -> blackout -> gone.
+    // Hollow Man reveal after Noah's message: silence -> apparition -> closer impossible jump -> vanish.
     if(scareStart&&!door307Cutscene){
       const elapsed=now-scareStart;
       const black=$('scareBlackout');
+      const fx=$('hollowPresenceFx');
 
-      if(elapsed<420){
+      // 0-600ms: the corridor acoustically "dies" before anything appears.
+      if(elapsed<600){
         g.hollowFigure.visible=false;
-      }else if(elapsed<1350){
+        if(fx) fx.classList.remove('reveal','closer','vanish');
+        if(black){black.classList.remove('on');black.style.opacity=String(.02+elapsed/600*.08);}
+
+      // 600-1850ms: distant Hollow Man appears absolutely still.
+      }else if(elapsed<1850){
         g.hollowFigure.visible=true;
-      }else if(elapsed<1780){
-        black?.classList.add('on');
+        if(fx){fx.classList.add('reveal');fx.classList.remove('closer','vanish');}
+        if(!scareImpactPlayed){
+          scareImpactPlayed=true;
+          playHollowRevealImpact(1.0);
+        }
+        if(scareVoiceStage===0&&elapsed>820){
+          if(speakElias("What... is that?",2500,null,180)){
+            scareVoiceStage=1;
+          }
+        }
+        // Slightly wrong posture: tiny head tilt, almost no body motion.
+        if(g.hollowHead){
+          g.hollowHead.rotation.z=-.12+Math.sin(now*.0031)*.025;
+          g.hollowHead.rotation.y=Math.sin(now*.0017)*.045;
+        }
+        g.hollowFigure.scale.y=1.20+Math.sin(now*.0022)*.018;
+        if(black){black.classList.remove('on');black.style.opacity='0';}
+
+      // 1850-2250ms: blackout. During darkness, it moves impossibly close.
+      }else if(elapsed<2250){
+        if(black){black.classList.add('on');black.style.opacity='1';}
         g.hollowFigure.visible=false;
-      }else if(elapsed<2300){
-        black?.classList.remove('on');
+        if(!scareRelocated){
+          scareRelocated=true;
+          const forward=new THREE.Vector3(0,0,-1).applyAxisAngle(new THREE.Vector3(0,1,0),lookState.yaw);
+          const closePos=g.camera.position.clone().add(forward.multiplyScalar(4.25));
+          closePos.x=Math.max(-.55,Math.min(.55,closePos.x));
+          closePos.y=0;
+          closePos.z=Math.max(-26.2,Math.min(4.6,closePos.z));
+          g.hollowFigure.position.copy(closePos);
+          g.hollowFigure.rotation.y=lookState.yaw+Math.PI;
+          g.hollowFigure.scale.set(1.18,1.34,1.18);
+        }
+        if(!scareSecondImpactPlayed&&elapsed>2020){
+          scareSecondImpactPlayed=true;
+          playHollowRevealImpact(1.28);
+        }
+
+      // 2250-4550ms: lights return; figure is now much closer.
+      }else if(elapsed<4550){
+        if(black){black.classList.remove('on');black.style.opacity='0';}
+        g.hollowFigure.visible=true;
+        if(fx){fx.classList.add('closer');fx.classList.remove('reveal','vanish');}
+
+        // Unnatural micro-movements only; no chase yet.
+        if(g.hollowHead){
+          const twitch=(Math.floor(elapsed/115)%9===4)?-.22:0;
+          g.hollowHead.rotation.z=.10+Math.sin(now*.0065)*.045+twitch;
+          g.hollowHead.rotation.y=Math.sin(now*.0038)*.08;
+        }
+        g.hollowFigure.position.y=Math.sin(now*.0027)*.018;
+        g.hollowFigure.rotation.z=Math.sin(now*.0018)*.012;
+
+        // Let E08 finish, then whisper E09 while it stares.
+        if(scareVoiceStage===1&&elapsed>3050&&!activeEliasAudio&&!eliasDialogueTimer){
+          eliasNextCueAt=0;
+          if(speakElias("Don't move.",2450,null,220)){
+            scareVoiceStage=2;
+          }
+        }
+
+      // 4550-4950ms: final blackout.
+      }else if(elapsed<4950){
+        if(black){black.classList.add('on');black.style.opacity='1';}
+        g.hollowFigure.visible=false;
+        if(fx){fx.classList.remove('reveal','closer');fx.classList.add('vanish');}
+
+      // Aftermath: nothing there, but one low sound remains.
+      }else if(elapsed<5700){
+        if(black){black.classList.remove('on');black.style.opacity=String(Math.max(0,.5-(elapsed-4950)/750*.5));}
+        g.hollowFigure.visible=false;
+        if(g.hollowHead) g.hollowHead.rotation.set(0,0,0);
+
+        if(elapsed>5150&&elapsed<5200){
+          playTone(61,.10,.018,'sine',42);
+          if(g.roaches?.length){
+            g.roaches.forEach((bug,index)=>{
+              if(index%2===0) bug.userData.angle+=Math.PI*(.7+Math.random()*.6);
+            });
+          }
+        }
+
       }else{
-        black?.classList.remove('on');
+        if(black){black.classList.remove('on');black.style.opacity='';}
+        if(fx){fx.classList.remove('reveal','closer','vanish');fx.setAttribute('aria-hidden','true');}
         g.hollowFigure.visible=false;
+        if(g.hollowHead) g.hollowHead.rotation.set(0,0,0);
         scareStart=0;
-        toast('It is gone.');
-        /* Elias stays silent here until a recorded clip is uploaded. */
+        threeRunning=true;
+        setInteractionTarget(null);
+        toast('The hallway is empty again.');
+      }
+
+      // Subtle handheld panic without obscuring the player view.
+      if(elapsed>=600&&elapsed<4550){
+        g.camera.rotation.z=Math.sin(now*.045)*(.004+(elapsed>2250?.006:.002));
+      }else{
+        g.camera.rotation.z*=.82;
       }
     }
 
@@ -4849,9 +5039,12 @@
       let scareMultiplier=1;
       if(scareStart){
         const se=now-scareStart;
-        if(se<1350) scareMultiplier=(Math.floor(se/90)%2===0)?.18:1;
-        else if(se<1780) scareMultiplier=.01;
-        else if(se<2300) scareMultiplier=.45;
+        if(se<600) scareMultiplier=.42+.18*Math.sin(now*.05);
+        else if(se<1850) scareMultiplier=(Math.floor(se/85)%5===1)?.12:.72;
+        else if(se<2250) scareMultiplier=.01;
+        else if(se<4550) scareMultiplier=(Math.floor(se/140)%7===2)?.18:.58;
+        else if(se<4950) scareMultiplier=.01;
+        else if(se<5700) scareMultiplier=.38;
       }
       entry.light.intensity=base*(.94+.06*flicker)*rare*scareMultiplier;
       entry.panel.material.emissiveIntensity=(index===1?.52:.75)*rare;
@@ -5398,7 +5591,7 @@
         /* Elias stays silent here until a recorded clip is uploaded. */
       save.progress=Math.max(save.progress,4);
       persist();
-      setTimeout(triggerFirstScare,520);
+      setTimeout(triggerFirstScare,900);
     }
   }
 
