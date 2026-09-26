@@ -1774,6 +1774,42 @@
     @keyframes presenceBreath{from{filter:brightness(.88)}to{filter:brightness(1.06)}}
     @keyframes presenceCollapse{0%{opacity:1;transform:scale(1)}50%{opacity:.25;transform:scaleX(1.035)}100%{opacity:0;transform:scale(.98)}}
 
+    /* LIGHTING + PRESENCE + MEMORY visual language */
+    .memory-corruption-fx{
+      position:absolute;inset:0;z-index:16;pointer-events:none;opacity:0;overflow:hidden;
+      mix-blend-mode:screen;
+      background:
+        linear-gradient(90deg,transparent 0 14%,rgba(215,232,234,.025) 14.4% 15%,transparent 15.4% 100%),
+        repeating-linear-gradient(180deg,transparent 0 9px,rgba(226,238,240,.025) 10px,transparent 11px);
+      transition:opacity .25s ease
+    }
+    .memory-corruption-fx.active{opacity:.62;animation:memoryFrameSkew 1.8s steps(2,end) infinite}
+    .memory-corruption-fx i{
+      position:absolute;height:2px;background:rgba(223,235,236,.20);opacity:0;
+      box-shadow:0 0 8px rgba(220,235,238,.08)
+    }
+    .memory-corruption-fx.active i{animation:memorySlice 1.25s steps(3,end) infinite}
+    .memory-corruption-fx i:nth-child(1){left:6%;top:19%;width:42%;animation-delay:.05s}
+    .memory-corruption-fx i:nth-child(2){left:47%;top:33%;width:34%;animation-delay:.28s}
+    .memory-corruption-fx i:nth-child(3){left:18%;top:51%;width:63%;animation-delay:.53s}
+    .memory-corruption-fx i:nth-child(4){left:3%;top:67%;width:27%;animation-delay:.77s}
+    .memory-corruption-fx i:nth-child(5){left:58%;top:75%;width:38%;animation-delay:.94s}
+    .memory-corruption-fx i:nth-child(6){left:23%;top:88%;width:49%;animation-delay:1.11s}
+    @keyframes memorySlice{
+      0%,77%{opacity:0;transform:translateX(0)}
+      78%{opacity:.9;transform:translateX(-8px)}
+      84%{opacity:.35;transform:translateX(14px)}
+      90%,100%{opacity:0;transform:translateX(0)}
+    }
+    @keyframes memoryFrameSkew{
+      0%,88%,100%{transform:translateX(0);filter:none}
+      90%{transform:translateX(-2px);filter:contrast(1.12)}
+      94%{transform:translateX(3px);filter:brightness(.8)}
+    }
+    #game.presence-active .game3d{filter:contrast(1.10) saturate(.72) brightness(.92)}
+    #game.memory-active .game3d{filter:contrast(1.12) saturate(.62) brightness(.90)}
+
+
   </style>
 </head>
 <body>
@@ -1921,6 +1957,9 @@
       <div class="presence-ring"></div>
       <div class="presence-lines"></div>
     </div>
+    <div id="memoryCorruptionFx" class="memory-corruption-fx" aria-hidden="true">
+      <i></i><i></i><i></i><i></i><i></i><i></i>
+    </div>
     <div id="door307Overlay" class="door307-overlay" aria-hidden="true">
       <div class="door307-tentacles" aria-hidden="true">
         <i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i>
@@ -2065,6 +2104,8 @@
   let scareEeriePulsePlayed=false;
   let activeHollowSuspense=null;
   let scareStepBackStart=null;
+  let memoryBleedUntil=0;
+  let memoryPlaquesCorrupted=false;
   let elevatorCalledAt=0;
   let door307Cutscene=null;
   let activeDoor307Tension=null;
@@ -3626,6 +3667,7 @@
 
     const interactables=[];
     const doorMeshes=[];
+    const doorPlaques=[];
     const doorPositions=[4.3,-2,-8.3,-14.6,-20.9];
     doorPositions.forEach((z,index)=>{
       [-1,1].forEach(side=>{
@@ -3696,6 +3738,7 @@
         plaque.position.set(side>0?-.101:.101,.87,.78);
         plaque.rotation.y=side>0?-Math.PI/2:Math.PI/2;
         hinge.add(plaque);
+        doorPlaques.push({doorNumber,plaque,originalMap:plaqueTex});
 
         // Thin inset paneling gives the door more depth while it turns.
         const panelMat=new THREE.MeshStandardMaterial({
@@ -3760,7 +3803,7 @@
     elevatorGroup.add(callLight);
     scene.add(elevatorGroup);
 
-    const ambient=new THREE.HemisphereLight(0x8095a0,0x070809,.38);
+    const ambient=new THREE.HemisphereLight(0x6f8791,0x030405,.24);
     scene.add(ambient);
 
     const ceilingLights=[];
@@ -3784,6 +3827,24 @@
       }
       scene.add(light);
       ceilingLights.push({light,panel,index});
+    });
+
+    // Cold fluorescent pools on the damp floor give the corridor cinematic depth.
+    const lightPools=[];
+    [4,-5,-14,-23].forEach((z,index)=>{
+      const mat=new THREE.MeshBasicMaterial({
+        color:index===2?0xa7bdc2:0x8faab2,
+        transparent:true,
+        opacity:index===2?.055:.035,
+        depthWrite:false,
+        blending:THREE.AdditiveBlending
+      });
+      const pool=new THREE.Mesh(new THREE.CircleGeometry(2.35,36),mat);
+      pool.rotation.x=-Math.PI/2;
+      pool.scale.set(1,.42,1);
+      pool.position.set(0,.016,z);
+      scene.add(pool);
+      lightPools.push(pool);
     });
 
     for(let i=0;i<8;i++){
@@ -3942,7 +4003,7 @@
     );
     emergencyFixture.position.set(3.82,2.72,-18.2);
     scene.add(emergencyFixture);
-    const emergencyLight=new THREE.PointLight(0x8b1720,.28,5.5,2);
+    const emergencyLight=new THREE.PointLight(0x8b1720,.38,6.2,2);
     emergencyLight.position.set(3.45,2.6,-18.2);
     scene.add(emergencyLight);
 
@@ -4336,8 +4397,8 @@
     phoneRig.rotation.set(-.12,0,0);
 
     threeGame={
-      renderer,scene,camera,ceilingLights,phoneRig,dustPoints,emergencyLight,
-      interactables,doorMeshes,callBox,callLight,sign,flashlight,hollowFigure,hollowHead,hollowTorsoPivot,hollowArms,hollowLegs,mouthGroup,tentacleGroup,
+      renderer,scene,camera,ceilingLights,lightPools,phoneRig,dustPoints,emergencyLight,
+      interactables,doorMeshes,doorPlaques,callBox,callLight,sign,flashlight,hollowFigure,hollowHead,hollowTorsoPivot,hollowArms,hollowLegs,mouthGroup,tentacleGroup,
       puddles,roaches,mouse,
       raycaster:new THREE.Raycaster(),centerRay:new THREE.Vector2(0,0),
       lastTime:performance.now(),
@@ -4739,6 +4800,51 @@
     playUIClick('soft');
   }
 
+  function triggerMemoryBleed(){
+    if(!threeGame) return;
+    memoryBleedUntil=performance.now()+8200;
+    memoryPlaquesCorrupted=true;
+
+    const fx=$('memoryCorruptionFx');
+    if(fx){fx.classList.add('active');fx.setAttribute('aria-hidden','false');}
+    $('game').classList.add('memory-active');
+
+    threeGame.doorPlaques?.forEach(item=>{
+      if(item.doorNumber===305){
+        item.plaque.material.map=makeTextTexture('   ','#b1aa98','#161412');
+        item.plaque.material.needsUpdate=true;
+      }else if(item.doorNumber===307){
+        item.plaque.material.map=makeTextTexture('307','#d7d9d2','#080909');
+        item.plaque.material.needsUpdate=true;
+      }
+    });
+
+    const objective=$('objectiveText');
+    if(objective){
+      objective.textContent='Find Door 307';
+      objective.classList.remove('updated');
+      void objective.offsetWidth;
+      objective.classList.add('updated');
+    }
+    save.progress=Math.max(save.progress,6);
+    persist();
+  }
+
+  function endMemoryBleed(){
+    if(!threeGame) return;
+    memoryBleedUntil=0;
+    memoryPlaquesCorrupted=false;
+    const fx=$('memoryCorruptionFx');
+    if(fx){fx.classList.remove('active');fx.setAttribute('aria-hidden','true');}
+    $('game').classList.remove('memory-active');
+    threeGame.doorPlaques?.forEach(item=>{
+      item.plaque.material.map=item.originalMap;
+      item.plaque.material.needsUpdate=true;
+      item.plaque.visible=true;
+      item.plaque.material.opacity=1;
+    });
+  }
+
   function triggerFirstScare(){
     if(firstScareTriggered||!threeGame) return;
     firstScareTriggered=true;
@@ -4763,6 +4869,7 @@
 
     const fx=$('hollowPresenceFx');
     if(fx){fx.classList.remove('reveal','closer','vanish');fx.setAttribute('aria-hidden','false');}
+    $('game').classList.add('presence-active');
 
     const forward=new THREE.Vector3(0,0,-1).applyAxisAngle(new THREE.Vector3(0,1,0),lookState.yaw);
     const pos=threeGame.camera.position.clone().add(forward.multiplyScalar(12.8));
@@ -5261,9 +5368,11 @@
         scareStart=0;
         scareStepBackStart=null;
         stopHollowSuspense(.8);
+        $('game').classList.remove('presence-active');
+        triggerMemoryBleed();
         threeRunning=true;
         setInteractionTarget(null);
-        toast('The hallway is empty again.');
+        toast('Something in the hallway has changed.');
       }
 
       // Small hand-held panic; never enough to obscure the Hollow Man.
@@ -5296,12 +5405,59 @@
     }
 
     if(g.dustPoints){
-      g.dustPoints.rotation.y=Math.sin(now*.00008)*.015;
-      g.dustPoints.position.y=Math.sin(now*.00055)*.035;
+      const presence=scareStart?1:0;
+      g.dustPoints.rotation.y=Math.sin(now*.00008)*.015 + presence*Math.sin(now*.002)*.08;
+      g.dustPoints.position.y=Math.sin(now*.00055)*.035 + presence*Math.sin(now*.004)*.045;
+      g.dustPoints.position.x=presence&&g.hollowFigure?.visible
+        ? (g.hollowFigure.position.x-g.camera.position.x)*.035
+        : 0;
+      g.dustPoints.material.opacity=presence?.30:.18;
+      g.dustPoints.material.size=presence?.023:.018;
     }
+
+    if(g.scene?.fog){
+      if(scareStart) g.scene.fog.density=.054+.004*Math.sin(now*.0018);
+      else if(memoryBleedUntil>now) g.scene.fog.density=.049+.002*Math.sin(now*.0024);
+      else g.scene.fog.density=.041;
+    }
+
+    if(g.puddles){
+      g.puddles.forEach((p,index)=>{
+        const presence=scareStart?1:0;
+        const memory=memoryBleedUntil>now?1:0;
+        const pulse=1+(presence*.035+memory*.012)*Math.sin(now*.006+index);
+        p.scale.z=pulse;
+        p.material.opacity=presence?.64:(memory?.53:.48);
+      });
+    }
+
+    if(g.lightPools){
+      g.lightPools.forEach((pool,index)=>{
+        const presence=scareStart?1:0;
+        pool.material.opacity=(index===2?.055:.035)*(presence?.55:1)*(memoryBleedUntil>now?.82:1);
+      });
+    }
+
     if(g.emergencyLight){
-      const pulse=.22+.07*Math.sin(now*.0017)+.025*Math.sin(now*.012);
+      const presenceBoost=scareStart?.16:0;
+      const pulse=.26+presenceBoost+.10*Math.sin(now*.0017)+.035*Math.sin(now*.012);
       g.emergencyLight.intensity=Math.max(.08,pulse);
+    }
+
+    if(memoryBleedUntil){
+      if(now<memoryBleedUntil){
+        const fx=$('memoryCorruptionFx');
+        if(fx&&!fx.classList.contains('active')) fx.classList.add('active');
+        g.doorPlaques?.forEach((item,index)=>{
+          if(memoryPlaquesCorrupted){
+            item.plaque.visible=(Math.floor(now/(135+index*7))%9)!==3;
+            item.plaque.material.transparent=true;
+            item.plaque.material.opacity=.65+.35*Math.abs(Math.sin(now*.004+index));
+          }
+        });
+      }else{
+        endMemoryBleed();
+      }
     }
 
     const flicker=Math.sin(now*.013)+Math.sin(now*.037)*.35;
@@ -5346,6 +5502,8 @@
     setInteractionTarget(null);
     stopDoor307Tension(.10);
     stopHollowSuspense(.12);
+    endMemoryBleed();
+    $('game').classList.remove('presence-active');
     stopEliasVoice();
     setSprint(false);
     Object.keys(moveState).forEach(k=>moveState[k]=false);
