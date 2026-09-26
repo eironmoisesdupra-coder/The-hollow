@@ -2062,6 +2062,9 @@
   let scareRelocated=false;
   let scareImpactPlayed=false;
   let scareSecondImpactPlayed=false;
+  let scareEeriePulsePlayed=false;
+  let activeHollowSuspense=null;
+  let scareStepBackStart=null;
   let elevatorCalledAt=0;
   let door307Cutscene=null;
   let activeDoor307Tension=null;
@@ -2475,6 +2478,117 @@
     return true;
   }
 
+  function playScareElias(line,postDelay=260){
+    const path=ELIAS_AUDIO_BY_LINE[line];
+    const box=$('eliasDialogue');
+    const textEl=$('eliasDialogueText');
+    if(!path||!box||!textEl||!save.sound) return false;
+
+    stopEliasVoice();
+    hideEliasDialogue();
+    eliasNextCueAt=0;
+
+    textEl.textContent=line;
+    box.classList.add('show');
+
+    const audio=new Audio(path);
+    activeEliasAudio=audio;
+    audio.preload='auto';
+    audio.volume=1;
+
+    let finished=false;
+    const finish=()=>{
+      if(finished) return;
+      finished=true;
+      if(activeEliasAudio===audio) activeEliasAudio=null;
+      hideEliasDialogue();
+      eliasNextCueAt=performance.now()+postDelay;
+    };
+
+    audio.addEventListener('ended',finish,{once:true});
+    audio.addEventListener('error',finish,{once:true});
+    audio.play().then(()=>{
+      const ms=Number.isFinite(audio.duration)&&audio.duration>0
+        ? audio.duration*1000+420
+        : 3200;
+      eliasDialogueTimer=setTimeout(finish,ms);
+    }).catch(finish);
+    return true;
+  }
+
+  function startHollowSuspense(){
+    if(!save.sound||!ensureAudio()||activeHollowSuspense) return;
+    const now=audioCtx.currentTime;
+    const mix=audioCtx.createGain();
+    const lowA=audioCtx.createOscillator();
+    const lowB=audioCtx.createOscillator();
+    const high=audioCtx.createOscillator();
+    const noise=makeNoiseSource(true);
+    const bp=audioCtx.createBiquadFilter();
+    const ng=audioCtx.createGain();
+    const lfo=audioCtx.createOscillator();
+    const lfoGain=audioCtx.createGain();
+
+    lowA.type='sine'; lowA.frequency.value=39;
+    lowB.type='triangle'; lowB.frequency.value=57; lowB.detune.value=-11;
+    high.type='sine'; high.frequency.value=213;
+    lfo.type='sine'; lfo.frequency.value=.23;
+    lfoGain.gain.value=9;
+    lfo.connect(lfoGain); lfoGain.connect(high.frequency);
+
+    bp.type='bandpass'; bp.frequency.value=620; bp.Q.value=.42;
+    ng.gain.value=.038;
+
+    mix.gain.setValueAtTime(.0001,now);
+    mix.gain.linearRampToValueAtTime(.18,now+.75);
+
+    lowA.connect(mix);
+    lowB.connect(mix);
+    high.connect(mix);
+    noise.connect(bp); bp.connect(ng); ng.connect(mix);
+    mix.connect(ambienceBus);
+
+    lowA.start(now); lowB.start(now); high.start(now); noise.start(now); lfo.start(now);
+    activeHollowSuspense={mix,sources:[lowA,lowB,high,noise,lfo]};
+  }
+
+  function stopHollowSuspense(fade=.5){
+    if(!activeHollowSuspense||!audioCtx) return;
+    const current=activeHollowSuspense;
+    activeHollowSuspense=null;
+    const now=audioCtx.currentTime;
+    current.mix.gain.cancelScheduledValues(now);
+    current.mix.gain.setValueAtTime(Math.max(.0001,current.mix.gain.value),now);
+    current.mix.gain.exponentialRampToValueAtTime(.0001,now+fade);
+    setTimeout(()=>current.sources.forEach(src=>safeStop(src)),fade*1000+80);
+  }
+
+  function playHollowEeriePulse(){
+    if(!save.sound||!ensureAudio()) return;
+    const now=audioCtx.currentTime;
+    const osc=audioCtx.createOscillator();
+    const gain=audioCtx.createGain();
+    const noise=makeNoiseSource(false);
+    const hp=audioCtx.createBiquadFilter();
+    const ng=audioCtx.createGain();
+
+    osc.type='sine';
+    osc.frequency.setValueAtTime(510,now);
+    osc.frequency.exponentialRampToValueAtTime(122,now+1.15);
+    gain.gain.setValueAtTime(.0001,now);
+    gain.gain.linearRampToValueAtTime(.026,now+.11);
+    gain.gain.exponentialRampToValueAtTime(.0001,now+1.22);
+
+    hp.type='highpass'; hp.frequency.value=1250;
+    ng.gain.setValueAtTime(.020,now);
+    ng.gain.exponentialRampToValueAtTime(.0001,now+.72);
+
+    osc.connect(gain); gain.connect(sfxBus);
+    noise.connect(hp); hp.connect(ng); ng.connect(sfxBus);
+    osc.start(now); noise.start(now);
+    osc.stop(now+1.3); noise.stop(now+.8);
+  }
+
   function playHollowRevealImpact(strength=1){
     if(!save.sound||!ensureAudio()) return;
     const now=audioCtx.currentTime;
@@ -2498,16 +2612,16 @@
     metal.frequency.exponentialRampToValueAtTime(170,now+.22);
 
     gain.gain.setValueAtTime(.0001,now);
-    gain.gain.linearRampToValueAtTime(.055*strength,now+.025);
+    gain.gain.linearRampToValueAtTime(.095*strength,now+.025);
     gain.gain.exponentialRampToValueAtTime(.0001,now+.82);
-    mg.gain.setValueAtTime(.022*strength,now);
+    mg.gain.setValueAtTime(.038*strength,now);
     mg.gain.exponentialRampToValueAtTime(.0001,now+.26);
 
     bp.type='bandpass';
     bp.frequency.setValueAtTime(1500,now);
     bp.frequency.exponentialRampToValueAtTime(210,now+.50);
     bp.Q.value=.55;
-    ng.gain.setValueAtTime(.030*strength,now);
+    ng.gain.setValueAtTime(.052*strength,now);
     ng.gain.exponentialRampToValueAtTime(.0001,now+.58);
 
     low.connect(gain); sub.connect(gain); gain.connect(sfxBus);
@@ -4611,12 +4725,16 @@
     setSprint(false);
     setInteractionTarget(null);
     stopEliasVoice();
+    hideEliasDialogue();
+    startHollowSuspense();
 
     scareStart=performance.now();
     scareVoiceStage=0;
     scareRelocated=false;
     scareImpactPlayed=false;
     scareSecondImpactPlayed=false;
+    scareEeriePulsePlayed=false;
+    scareStepBackStart=null;
     eliasNextCueAt=0;
 
     const fx=$('hollowPresenceFx');
@@ -4886,32 +5004,39 @@
       }
     }
 
-    // Hollow Man reveal after Noah's message: silence -> apparition -> closer impossible jump -> vanish.
+    // Hollow Man reveal after Noah's message: long dread -> apparition -> impossible approach -> vanish.
     if(scareStart&&!door307Cutscene){
       const elapsed=now-scareStart;
       const black=$('scareBlackout');
       const fx=$('hollowPresenceFx');
 
-      // 0-600ms: the corridor acoustically "dies" before anything appears.
-      if(elapsed<600){
+      // 0-900ms: let the phone fully lower. The corridor acoustically "dies".
+      if(elapsed<900){
         g.hollowFigure.visible=false;
         if(fx) fx.classList.remove('reveal','closer','vanish');
-        if(black){black.classList.remove('on');black.style.opacity=String(.02+elapsed/600*.08);}
+        if(black){black.classList.remove('on');black.style.opacity=String(.02+elapsed/900*.08);}
 
-      // 600-1850ms: distant Hollow Man appears absolutely still.
-      }else if(elapsed<1850){
+      // 900-3100ms: distant Hollow Man appears and simply watches.
+      }else if(elapsed<3100){
         g.hollowFigure.visible=true;
         if(fx){fx.classList.add('reveal');fx.classList.remove('closer','vanish');}
+
         if(!scareImpactPlayed){
           scareImpactPlayed=true;
-          playHollowRevealImpact(1.0);
+          playHollowRevealImpact(1.42);
         }
-        if(scareVoiceStage===0&&elapsed>820){
-          if(speakElias("What... is that?",2500,null,180)){
+        if(!scareEeriePulsePlayed&&elapsed>1500){
+          scareEeriePulsePlayed=true;
+          playHollowEeriePulse();
+        }
+
+        // Dedicated scare playback ignores the normal exploration voice queue.
+        if(scareVoiceStage===0&&elapsed>1450){
+          if(playScareElias("What... is that?",220)){
             scareVoiceStage=1;
           }
         }
-        // Slightly wrong posture: tiny head tilt, almost no body motion.
+
         if(g.hollowHead){
           g.hollowHead.rotation.z=-.12+Math.sin(now*.0031)*.025;
           g.hollowHead.rotation.y=Math.sin(now*.0017)*.045;
@@ -4919,63 +5044,79 @@
         g.hollowFigure.scale.y=1.20+Math.sin(now*.0022)*.018;
         if(black){black.classList.remove('on');black.style.opacity='0';}
 
-      // 1850-2250ms: blackout. During darkness, it moves impossibly close.
-      }else if(elapsed<2250){
+      // 3100-3700ms: blackout. The figure crosses most of the hallway without footsteps.
+      }else if(elapsed<3700){
         if(black){black.classList.add('on');black.style.opacity='1';}
         g.hollowFigure.visible=false;
+
         if(!scareRelocated){
           scareRelocated=true;
           const forward=new THREE.Vector3(0,0,-1).applyAxisAngle(new THREE.Vector3(0,1,0),lookState.yaw);
-          const closePos=g.camera.position.clone().add(forward.multiplyScalar(4.25));
-          closePos.x=Math.max(-.55,Math.min(.55,closePos.x));
+          const closePos=g.camera.position.clone().add(forward.multiplyScalar(4.15));
+          closePos.x=Math.max(-.48,Math.min(.48,closePos.x));
           closePos.y=0;
           closePos.z=Math.max(-26.2,Math.min(4.6,closePos.z));
           g.hollowFigure.position.copy(closePos);
           g.hollowFigure.rotation.y=lookState.yaw+Math.PI;
-          g.hollowFigure.scale.set(1.18,1.34,1.18);
-        }
-        if(!scareSecondImpactPlayed&&elapsed>2020){
-          scareSecondImpactPlayed=true;
-          playHollowRevealImpact(1.28);
+          g.hollowFigure.scale.set(1.20,1.38,1.20);
+          scareStepBackStart=g.camera.position.clone();
         }
 
-      // 2250-4550ms: lights return; figure is now much closer.
-      }else if(elapsed<4550){
+        if(!scareSecondImpactPlayed&&elapsed>3380){
+          scareSecondImpactPlayed=true;
+          playHollowRevealImpact(1.7);
+          playHollowEeriePulse();
+        }
+
+      // 3700-7350ms: lights return. Hollow Man is now close enough to dominate the hallway.
+      }else if(elapsed<7350){
         if(black){black.classList.remove('on');black.style.opacity='0';}
         g.hollowFigure.visible=true;
         if(fx){fx.classList.add('closer');fx.classList.remove('reveal','vanish');}
 
-        // Unnatural micro-movements only; no chase yet.
+        // Elias instinctively takes a slow half-step backward.
+        if(scareStepBackStart){
+          const backProgress=Math.min(1,Math.max(0,(elapsed-3820)/1250));
+          const eased=backProgress*backProgress*(3-2*backProgress);
+          const backDir=new THREE.Vector3(0,0,1).applyAxisAngle(new THREE.Vector3(0,1,0),lookState.yaw);
+          const target=scareStepBackStart.clone().add(backDir.multiplyScalar(.72));
+          g.camera.position.lerpVectors(scareStepBackStart,target,eased);
+          g.camera.position.y=g.baseY+Math.sin(now*.013)*.008*backProgress;
+        }
+
         if(g.hollowHead){
-          const twitch=(Math.floor(elapsed/115)%9===4)?-.22:0;
+          const twitch=(Math.floor(elapsed/130)%11===5)?-.20:0;
           g.hollowHead.rotation.z=.10+Math.sin(now*.0065)*.045+twitch;
           g.hollowHead.rotation.y=Math.sin(now*.0038)*.08;
         }
         g.hollowFigure.position.y=Math.sin(now*.0027)*.018;
         g.hollowFigure.rotation.z=Math.sin(now*.0018)*.012;
 
-        // Let E08 finish, then whisper E09 while it stares.
-        if(scareVoiceStage===1&&elapsed>3050&&!activeEliasAudio&&!eliasDialogueTimer){
-          eliasNextCueAt=0;
-          if(speakElias("Don't move.",2450,null,220)){
+        // Hold the stare before Elias whispers the second recorded reaction.
+        if(scareVoiceStage===1&&elapsed>5050&&!activeEliasAudio&&!eliasDialogueTimer){
+          if(playScareElias("Don't move.",260)){
             scareVoiceStage=2;
           }
         }
 
-      // 4550-4950ms: final blackout.
-      }else if(elapsed<4950){
+        // Sparse eerie pulses keep the scene alive without turning it into a chase.
+        if(elapsed>6100&&elapsed<6170) playHollowEeriePulse();
+
+      // 7350-7900ms: final blackout.
+      }else if(elapsed<7900){
         if(black){black.classList.add('on');black.style.opacity='1';}
         g.hollowFigure.visible=false;
         if(fx){fx.classList.remove('reveal','closer');fx.classList.add('vanish');}
 
-      // Aftermath: nothing there, but one low sound remains.
-      }else if(elapsed<5700){
-        if(black){black.classList.remove('on');black.style.opacity=String(Math.max(0,.5-(elapsed-4950)/750*.5));}
+      // 7900-9100ms: hallway returns empty. A low residual sound remains.
+      }else if(elapsed<9100){
+        if(black){black.classList.remove('on');black.style.opacity=String(Math.max(0,.52-(elapsed-7900)/1200*.52));}
         g.hollowFigure.visible=false;
         if(g.hollowHead) g.hollowHead.rotation.set(0,0,0);
 
-        if(elapsed>5150&&elapsed<5200){
-          playTone(61,.10,.018,'sine',42);
+        if(elapsed>8200&&elapsed<8260){
+          playTone(58,.16,.028,'sine',35);
+          playNoiseBurst(.16,.018,900);
           if(g.roaches?.length){
             g.roaches.forEach((bug,index)=>{
               if(index%2===0) bug.userData.angle+=Math.PI*(.7+Math.random()*.6);
@@ -4989,14 +5130,16 @@
         g.hollowFigure.visible=false;
         if(g.hollowHead) g.hollowHead.rotation.set(0,0,0);
         scareStart=0;
+        scareStepBackStart=null;
+        stopHollowSuspense(.8);
         threeRunning=true;
         setInteractionTarget(null);
         toast('The hallway is empty again.');
       }
 
-      // Subtle handheld panic without obscuring the player view.
-      if(elapsed>=600&&elapsed<4550){
-        g.camera.rotation.z=Math.sin(now*.045)*(.004+(elapsed>2250?.006:.002));
+      // Small hand-held panic; never enough to obscure the Hollow Man.
+      if(elapsed>=900&&elapsed<7350){
+        g.camera.rotation.z=Math.sin(now*.040)*(.0045+(elapsed>3700?.007:.0025));
       }else{
         g.camera.rotation.z*=.82;
       }
@@ -5039,12 +5182,12 @@
       let scareMultiplier=1;
       if(scareStart){
         const se=now-scareStart;
-        if(se<600) scareMultiplier=.42+.18*Math.sin(now*.05);
-        else if(se<1850) scareMultiplier=(Math.floor(se/85)%5===1)?.12:.72;
-        else if(se<2250) scareMultiplier=.01;
-        else if(se<4550) scareMultiplier=(Math.floor(se/140)%7===2)?.18:.58;
-        else if(se<4950) scareMultiplier=.01;
-        else if(se<5700) scareMultiplier=.38;
+        if(se<900) scareMultiplier=.34+.16*Math.sin(now*.045);
+        else if(se<3100) scareMultiplier=(Math.floor(se/105)%6===2)?.10:.68;
+        else if(se<3700) scareMultiplier=.008;
+        else if(se<7350) scareMultiplier=(Math.floor(se/165)%8===3)?.14:.54;
+        else if(se<7900) scareMultiplier=.008;
+        else if(se<9100) scareMultiplier=.32;
       }
       entry.light.intensity=base*(.94+.06*flicker)*rare*scareMultiplier;
       entry.panel.material.emissiveIntensity=(index===1?.52:.75)*rare;
@@ -5073,6 +5216,7 @@
     threeRunning=false;
     setInteractionTarget(null);
     stopDoor307Tension(.10);
+    stopHollowSuspense(.12);
     stopEliasVoice();
     setSprint(false);
     Object.keys(moveState).forEach(k=>moveState[k]=false);
