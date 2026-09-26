@@ -2007,6 +2007,29 @@
       filter:drop-shadow(0 0 16px rgba(0,0,0,.95))
     }
 
+  
+    /* v41 QA correction: make MENU motion and PHONE corruption unmistakable */
+    #home.active .corridor-bg{
+      animation:menuCameraDrift 13s ease-in-out infinite alternate;
+    }
+    @keyframes menuCameraDrift{
+      0%{transform:scale(1.035) translate3d(calc(var(--menu-x,0px) - 4px),calc(var(--menu-y,0px) - 2px),0)}
+      50%{transform:scale(1.048) translate3d(calc(var(--menu-x,0px) + 5px),calc(var(--menu-y,0px) + 2px),0)}
+      100%{transform:scale(1.038) translate3d(calc(var(--menu-x,0px) - 1px),calc(var(--menu-y,0px) + 5px),0)}
+    }
+    .phone-device.corrupted .phone-interference{opacity:.72!important}
+    .phone-device.corrupted .phone-screen:after{
+      content:"";position:absolute;inset:0;z-index:9;pointer-events:none;
+      background:linear-gradient(180deg,transparent 0 46%,rgba(214,229,232,.10) 47%,transparent 50%);
+      opacity:0;animation:phoneHardGlitch 1.65s steps(1,end) infinite
+    }
+    @keyframes phoneHardGlitch{
+      0%,62%,100%{opacity:0;transform:translateY(0)}
+      64%{opacity:.9;transform:translateY(-7px)}
+      67%{opacity:.28;transform:translateY(11px)}
+      72%{opacity:0;transform:translateY(0)}
+    }
+
   </style>
 </head>
 <body>
