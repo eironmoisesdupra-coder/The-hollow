@@ -1965,6 +1965,7 @@
   let eliasDialogueTimer=null;
   let activeEliasAudio=null;
   let eliasDialogueStage=0;
+  let eliasNextCueAt=0;
   const ELIAS_AUDIO_BY_LINE={
     "Okay... where am I?":"./assets/audio/elias/elias_001_where_am_i.mp3",
     "This isn't my apartment.":"./assets/audio/elias/elias_002_not_my_apartment.mp3",
@@ -2317,19 +2318,38 @@
     if(eliasDialogueTimer){ clearTimeout(eliasDialogueTimer); eliasDialogueTimer=null; }
   }
 
-  function speakElias(line,duration=2600){
+  function speakElias(line,duration=2600,_emotion=null,postDelay=950){
     const box=$('eliasDialogue'), textEl=$('eliasDialogueText');
     if(!box||!textEl) return false;
     const path=ELIAS_AUDIO_BY_LINE[line];
-    if(!path||!save.sound||activeEliasAudio||eliasDialogueTimer) return false;
-    textEl.textContent=line; box.classList.add('show');
+
+    // Recorded clips are the only source of Elias' voice.
+    // If a future line has no uploaded file yet, Elias stays completely silent.
+    if(!path||!save.sound||activeEliasAudio||eliasDialogueTimer||performance.now()<eliasNextCueAt) return false;
+
+    textEl.textContent=line;
+    box.classList.add('show');
+
     const audio=new Audio(path);
-    activeEliasAudio=audio; audio.preload='auto'; audio.volume=.96;
-    const finish=()=>{ if(activeEliasAudio===audio) activeEliasAudio=null; hideEliasDialogue(); };
+    activeEliasAudio=audio;
+    audio.preload='auto';
+    audio.volume=.96;
+
+    let finished=false;
+    const finish=()=>{
+      if(finished) return;
+      finished=true;
+      if(activeEliasAudio===audio) activeEliasAudio=null;
+      hideEliasDialogue();
+      eliasNextCueAt=performance.now()+postDelay;
+    };
+
     audio.addEventListener('ended',finish,{once:true});
     audio.addEventListener('error',finish,{once:true});
     audio.play().then(()=>{
-      const ms=Number.isFinite(audio.duration)&&audio.duration>0?Math.max(duration,audio.duration*1000+350):duration;
+      const ms=Number.isFinite(audio.duration)&&audio.duration>0
+        ? Math.max(duration,audio.duration*1000+280)
+        : duration;
       eliasDialogueTimer=setTimeout(finish,ms);
     }).catch(finish);
     return true;
@@ -3715,19 +3735,27 @@
     // Door 307 cutscene maw: an irregular shadow opening with depth,
     // asymmetrical teeth, and a layered dark throat. No bright/cartoon colors.
     const tentacleGroup=new THREE.Group();
-    const tentacleMat=new THREE.MeshStandardMaterial({color:0x020202,roughness:.96,metalness:0});
-    for(let i=0;i<10;i++){
-      const angle=(i/10)*Math.PI*2+(i%2)*.17, reach=1.35+(i%4)*.32;
+    const tentacleMat=new THREE.MeshStandardMaterial({color:0x010101,roughness:1,metalness:0});
+    for(let i=0;i<14;i++){
+      const angle=(i/14)*Math.PI*2+(i%2)*.13;
+      const reach=1.75+(i%5)*.28;
+      const verticalSquash=.70+((i*17)%5)*.045;
       const curve=new THREE.CatmullRomCurve3([
         new THREE.Vector3(0,0,0),
-        new THREE.Vector3(Math.cos(angle)*reach*.22,Math.sin(angle)*reach*.18,.08),
-        new THREE.Vector3(Math.cos(angle)*reach*.58,Math.sin(angle)*reach*.46,.18+(i%3)*.07),
-        new THREE.Vector3(Math.cos(angle)*reach,Math.sin(angle)*reach*.76,.34+(i%2)*.16)
+        new THREE.Vector3(Math.cos(angle)*reach*.16,Math.sin(angle)*reach*.12,.02),
+        new THREE.Vector3(Math.cos(angle+.10)*reach*.44,Math.sin(angle-.08)*reach*.32,.12+(i%3)*.05),
+        new THREE.Vector3(Math.cos(angle-.07)*reach*.72,Math.sin(angle+.09)*reach*.54,.26+(i%2)*.10),
+        new THREE.Vector3(Math.cos(angle)*reach,Math.sin(angle)*reach*verticalSquash,.45+(i%4)*.07)
       ]);
-      const t=new THREE.Mesh(new THREE.TubeGeometry(curve,24,.065-(i%3)*.009,7,false),tentacleMat);
-      t.userData.phase=i*.73; tentacleGroup.add(t);
+      const radius=Math.max(.030,.078-(i%4)*.010);
+      const t=new THREE.Mesh(new THREE.TubeGeometry(curve,34,radius,8,false),tentacleMat);
+      t.userData.phase=i*.61;
+      t.userData.baseScale=.78+((i*13)%5)*.07;
+      tentacleGroup.add(t);
     }
-    tentacleGroup.visible=false; tentacleGroup.scale.set(.02,.02,.02); scene.add(tentacleGroup);
+    tentacleGroup.visible=false;
+    tentacleGroup.scale.set(.01,.01,.01);
+    scene.add(tentacleGroup);
 
     const mouthGroup=new THREE.Group();
 
@@ -3979,50 +4007,32 @@
     phoneSpeaker.position.set(0,.78,-.198);
     phoneRig.add(phoneSpeaker);
 
-    // Right arm: sleeve -> cuff -> exposed forearm -> wrist -> palm.
-    const rightArm=new THREE.Group();
-    rightArm.add(limbBetween([.78,-1.12,.14],[.48,-.62,.06],.20,.17,sleeveMat));
-    const rightElbow=roundedPart({x:.17,y:.15,z:.17},sleeveMat);
-    rightElbow.position.set(.48,-.62,.06);
-    rightArm.add(rightElbow);
-    rightArm.add(limbBetween([.48,-.62,.06],[.31,-.33,-.02],.17,.145,cuffMat));
-    rightArm.add(limbBetween([.31,-.33,-.02],[.25,.16,-.10],.13,.09,skinMat));
-    const rightWrist=roundedPart({x:.09,y:.12,z:.08},skinMat);
-    rightWrist.position.set(.25,.17,-.10);
-    rightArm.add(rightWrist);
-    const rightPalm=roundedPart({x:.17,y:.23,z:.075},skinMat);
-    rightPalm.position.set(.27,.38,-.13);
-    rightPalm.rotation.z=-.12;
-    rightArm.add(rightPalm);
+    // Chunky block-style first-person body: simple cuboid sleeves, forearms and hands.
+    // The proportions intentionally look like a stylized block avatar rather than realistic anatomy.
+    function blockPart(w,h,d,material,x,y,z,rx=0,ry=0,rz=0){
+      const part=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),material);
+      part.position.set(x,y,z);
+      part.rotation.set(rx,ry,rz);
+      part.castShadow=true;
+      part.receiveShadow=true;
+      return part;
+    }
 
-    addFinger(rightArm,[.31,.47,-.14],[.31,.57,-.18],[.28,.65,-.22],skinMat);
-    addFinger(rightArm,[.32,.42,-.14],[.33,.50,-.18],[.30,.57,-.22],skinMat);
-    addFinger(rightArm,[.31,.37,-.14],[.32,.44,-.18],[.29,.50,-.22],skinMat);
-    addFinger(rightArm,[.29,.32,-.14],[.30,.38,-.18],[.27,.43,-.22],skinShadowMat);
-    addFinger(rightArm,[.18,.43,-.12],[.10,.48,-.17],[.04,.51,-.21],skinMat);
+    const rightArm=new THREE.Group();
+    rightArm.add(blockPart(.34,.78,.34,sleeveMat,.58,-.80,.07,0,0,-.34));
+    rightArm.add(blockPart(.29,.42,.29,cuffMat,.40,-.32,-.01,0,0,-.22));
+    rightArm.add(blockPart(.25,.50,.25,skinMat,.29,.08,-.10,0,0,-.10));
+    rightArm.add(blockPart(.31,.30,.19,skinMat,.27,.43,-.15,0,0,-.08));
+    // One solid block grip instead of individual realistic fingers.
+    rightArm.add(blockPart(.24,.18,.16,skinShadowMat,.16,.58,-.20,-.08,0,.22));
     phoneRig.add(rightArm);
 
-    // Left arm mirrors the support grip with a connected wrist/palm.
     const leftArm=new THREE.Group();
-    leftArm.add(limbBetween([-.80,-1.15,.16],[-.49,-.64,.07],.20,.17,sleeveMat));
-    const leftElbow=roundedPart({x:.17,y:.15,z:.17},sleeveMat);
-    leftElbow.position.set(-.49,-.64,.07);
-    leftArm.add(leftElbow);
-    leftArm.add(limbBetween([-.49,-.64,.07],[-.31,-.34,-.02],.17,.145,cuffMat));
-    leftArm.add(limbBetween([-.31,-.34,-.02],[-.25,.15,-.10],.13,.09,skinMat));
-    const leftWrist=roundedPart({x:.09,y:.12,z:.08},skinMat);
-    leftWrist.position.set(-.25,.16,-.10);
-    leftArm.add(leftWrist);
-    const leftPalm=roundedPart({x:.17,y:.23,z:.075},skinMat);
-    leftPalm.position.set(-.27,.38,-.13);
-    leftPalm.rotation.z=.12;
-    leftArm.add(leftPalm);
-
-    addFinger(leftArm,[-.31,.47,-.14],[-.31,.57,-.18],[-.28,.65,-.22],skinMat);
-    addFinger(leftArm,[-.32,.42,-.14],[-.33,.50,-.18],[-.30,.57,-.22],skinMat);
-    addFinger(leftArm,[-.31,.37,-.14],[-.32,.44,-.18],[-.29,.50,-.22],skinMat);
-    addFinger(leftArm,[-.29,.32,-.14],[-.30,.38,-.18],[-.27,.43,-.22],skinShadowMat);
-    addFinger(leftArm,[-.18,.43,-.12],[-.10,.48,-.17],[-.04,.51,-.21],skinMat);
+    leftArm.add(blockPart(.34,.78,.34,sleeveMat,-.60,-.82,.08,0,0,.34));
+    leftArm.add(blockPart(.29,.42,.29,cuffMat,-.41,-.33,-.01,0,0,.22));
+    leftArm.add(blockPart(.25,.50,.25,skinMat,-.29,.08,-.10,0,0,.10));
+    leftArm.add(blockPart(.31,.30,.19,skinMat,-.27,.43,-.15,0,0,.08));
+    leftArm.add(blockPart(.24,.18,.16,skinShadowMat,-.16,.58,-.20,-.08,0,-.22));
     phoneRig.add(leftArm);
 
     phoneRig.position.set(0,-1.78,-1.12);
@@ -4254,7 +4264,12 @@
       threeGame.tentacleGroup.visible=true;
       threeGame.tentacleGroup.position.copy(mouthStart);
       threeGame.tentacleGroup.rotation.y=targetYaw;
-      threeGame.tentacleGroup.scale.set(.02,.02,.02);
+      threeGame.tentacleGroup.scale.set(.01,.01,.01);
+      threeGame.tentacleGroup.children.forEach(t=>{
+        t.position.set(0,0,0);
+        t.rotation.set(0,0,0);
+        t.scale.set(1,1,1);
+      });
     }
 
     if(threeGame.mouthGroup){
@@ -4272,7 +4287,7 @@
         door.userData.targetRotation=door.userData.side>0?-.82:.82;
         playDoorOpen();
         toast('The door opens only a few inches.');
-        speakElias("It's just darkness in there.",2300,'nervous');
+        /* Elias stays silent here until a recorded clip is uploaded. */
       }else{
         door.userData.targetRotation=0;
         playDoorClose();
@@ -4285,7 +4300,7 @@
       playDoorLocked();
       toast('Something knocks back from the other side.');
       setTimeout(playDistantKnock,260);
-      setTimeout(()=>speakElias("No. I'm not opening that.",2200,'angry'),720);
+        /* Elias stays silent here until a recorded clip is uploaded. */
       return;
     }
 
@@ -4293,7 +4308,7 @@
       playDoorLocked();
       toast('A whisper stops the moment you touch the handle.');
       playNoiseBurst(.25,.0252,1100);
-      setTimeout(()=>speakElias("I heard you.",1900,'nervous'),320);
+        /* Elias stays silent here until a recorded clip is uploaded. */
       return;
     }
 
@@ -4301,7 +4316,7 @@
       playDoorLocked();
       toast('Scratching. Then silence.');
       setTimeout(()=>playNoiseBurst(.18,.035,480),160);
-      setTimeout(()=>speakElias("Something's moving in there.",2300,'afraid'),450);
+        /* Elias stays silent here until a recorded clip is uploaded. */
       return;
     }
 
@@ -4312,7 +4327,7 @@
 
     playDoorLocked();
     toast('Locked.');
-    if(n===301) speakElias("Locked... of course.",1800,'normal');
+        /* Elias stays silent here until a recorded clip is uploaded. */
   }
 
   function callElevator(){
@@ -4331,7 +4346,7 @@
       objective.classList.remove('updated');
       void objective.offsetWidth;
       objective.classList.add('updated');
-      speakElias("Floor H? This building shouldn't have an H.",3100,'surprised');
+        /* Elias stays silent here until a recorded clip is uploaded. */
     },1500);
   }
 
@@ -4347,10 +4362,10 @@
       const label=currentInteractable.userData.interactionLabel||'object';
       if(label.toLowerCase().includes('radiator')){
         toast('Cold metal. It has not worked in years.');
-        speakElias("Cold. Like the power's been dead for years.",2700,'quiet');
+        /* Elias stays silent here until a recorded clip is uploaded. */
       }else{
         toast('Dust outlines where someone once sat.');
-        speakElias("Someone was sitting here... recently.",2600,'nervous');
+        /* Elias stays silent here until a recorded clip is uploaded. */
       }
     }
   }
@@ -4441,9 +4456,9 @@
       const elapsed=now-cs.start;
       const black=$('scareBlackout');
 
-      // Phase 1: smoothly pull the camera into a close-up of Door 307.
-      if(elapsed<1050){
-        const p=Math.min(1,elapsed/1050);
+      // Pull into Door 307 quickly so the scare never stalls.
+      if(elapsed<720){
+        const p=Math.min(1,elapsed/720);
         const eased=p*p*(3-2*p);
         g.camera.position.lerpVectors(cs.startPos,cs.targetPos,eased);
         lookState.yaw=cs.startYaw+(cs.targetYaw-cs.startYaw)*eased;
@@ -4460,41 +4475,63 @@
         g.camera.rotation.x=0;
       }
 
-      // Tentacles erupt first, then the mouth lunges much faster.
-      if(elapsed>=760&&elapsed<1380){
+      // Door opens -> a burst of black tentacles fans violently into the hallway.
+      if(elapsed>=430&&elapsed<980){
         g.mouthGroup.visible=false;
         if(g.tentacleGroup){
           g.tentacleGroup.visible=true;
-          const t=Math.min(1,(elapsed-760)/620), spread=1-Math.pow(1-t,3);
-          g.tentacleGroup.scale.setScalar(.04+spread);
+          const t=Math.min(1,(elapsed-430)/550);
+          const spread=1-Math.pow(1-t,4);
+          const recoil=Math.sin(Math.min(1,t)*Math.PI)*.12;
+          g.tentacleGroup.scale.set(1.0+spread*.78, .16+spread*1.18, .22+spread*.92);
           g.tentacleGroup.children.forEach((tentacle,index)=>{
-            tentacle.rotation.z=Math.sin(now*.009+index*.9)*(.08+.08*spread);
-            tentacle.rotation.x=Math.cos(now*.007+index)*.05*spread;
+            const phase=tentacle.userData.phase||0;
+            const base=tentacle.userData.baseScale||1;
+            tentacle.scale.setScalar(base*(.78+spread*.32));
+            tentacle.rotation.z=Math.sin(now*.020+phase)*(.10+.22*spread);
+            tentacle.rotation.x=Math.cos(now*.016+phase*.8)*(.07+.13*spread);
+            tentacle.rotation.y=Math.sin(now*.013+phase)*.08*spread;
+            tentacle.position.z=-recoil*(index%2?1:-1);
           });
         }
-        if(black){ black.classList.remove('on'); black.style.opacity=String(.08+t*.18); }
-      }else if(elapsed>=1380&&elapsed<2580){
+        if(save.sound&&t>.30&&now-cs.lastMouthSound>105){
+          cs.lastMouthSound=now;
+          playNoiseBurst(.045,.018+t*.020,360+t*520);
+        }
+        if(black){ black.classList.remove('on'); black.style.opacity=String(.05+t*.24); }
+
+      // The mouth appears only after the tentacle burst and engulfs the view in under a second.
+      }else if(elapsed>=980&&elapsed<1660){
+        if(g.tentacleGroup){
+          g.tentacleGroup.visible=true;
+          g.tentacleGroup.scale.multiplyScalar(.996);
+        }
         g.mouthGroup.visible=true;
-        const raw=Math.min(1,(elapsed-1380)/1200), rush=raw*raw*(3-2*raw);
-        if(!cs.roarPlayed&&raw>.18){ cs.roarPlayed=true; playMonsterRoar(); }
-        if(black){ black.classList.remove('on'); black.style.opacity=String(Math.min(.95,.16+Math.pow(raw,.72)*.82)); }
+        const raw=Math.min(1,(elapsed-980)/680);
+        const rush=Math.pow(raw,.72);
+        if(!cs.roarPlayed&&raw>.08){ cs.roarPlayed=true; playMonsterRoar(); }
+        if(black){ black.classList.remove('on'); black.style.opacity=String(Math.min(.97,.18+Math.pow(raw,.55)*.84)); }
+
         const forward=new THREE.Vector3(0,0,-1).applyQuaternion(g.camera.quaternion);
-        const mouthEnd=g.camera.position.clone().add(forward.multiplyScalar(.10));
+        const mouthEnd=g.camera.position.clone().add(forward.multiplyScalar(.055));
         g.mouthGroup.position.lerpVectors(cs.mouthStart,mouthEnd,rush);
         g.mouthGroup.lookAt(g.camera.position);
-        const scale=.36+rush*7.3, twitch=1+Math.sin(now*.016)*.025*(.25+raw);
-        g.mouthGroup.scale.set(scale*twitch,scale*(1-.018*Math.sin(now*.012)),scale);
-        g.mouthGroup.rotation.z=Math.sin(now*.0065)*.05*(.3+raw);
-        if(save.sound&&raw>.42&&now-cs.lastMouthSound>120){
+
+        const scale=.48+rush*8.9;
+        const twitch=1+Math.sin(now*.021)*.030*(.25+raw);
+        g.mouthGroup.scale.set(scale*twitch,scale*(1-.020*Math.sin(now*.016)),scale);
+        g.mouthGroup.rotation.z=Math.sin(now*.0085)*.065*(.3+raw);
+
+        if(save.sound&&raw>.20&&now-cs.lastMouthSound>85){
           cs.lastMouthSound=now;
-          playNoiseBurst(.04,.014+raw*.025,280+raw*520);
-          playTone(58+raw*31,.06,.009+raw*.014,'sine',38);
+          playNoiseBurst(.035,.017+raw*.030,250+raw*650);
+          playTone(56+raw*34,.055,.010+raw*.016,'sine',34);
         }
-      }else if(elapsed>=2580&&elapsed<2860){
+      }else if(elapsed>=1660&&elapsed<1840){
         if(black){ black.style.opacity='1'; black.classList.remove('on'); }
         g.mouthGroup.visible=false;
         if(g.tentacleGroup) g.tentacleGroup.visible=false;
-      }else if(elapsed>=2860&&!cs.teleported){
+      }else if(elapsed>=1840&&!cs.teleported){
         cs.teleported=true;
         g.camera.position.set(0,g.baseY,6.4);
         lookState.yaw=0; lookState.pitch=0; g.camera.rotation.set(0,0,0);
@@ -4561,22 +4598,36 @@
       g.camera.rotation.x=lookState.pitch+(moving?Math.sin(g.bob*.5)*.004:0);
     }
 
-    // Recorded Elias dialogue is paced by exploration. A line waits until the previous clip finishes.
-    if(threeRunning&&!door307Cutscene&&!activeEliasAudio&&!eliasDialogueTimer){
+    // The seven uploaded Elias clips are paced by exploration rather than firing back-to-back.
+    if(threeRunning&&!door307Cutscene&&!activeEliasAudio&&!eliasDialogueTimer&&now>=eliasNextCueAt){
       const z=g.camera.position.z;
-      if(eliasDialogueStage===1&&z<6.3){
-        if(speakElias("This isn't my apartment.",2200)) eliasDialogueStage=2;
-      }else if(eliasDialogueStage===2&&z<5.2){
-        if(speakElias("Hello? Is somebody there?",2400)) eliasDialogueStage=3;
-      }else if(eliasDialogueStage===3&&z<4.2){
-        if(speakElias("Great. Of course nobody answers.",2600)) eliasDialogueStage=4;
-      }else if(eliasDialogueStage===4&&phoneAutoTriggered&&!$('phoneOverlay').classList.contains('open')&&z<1.0){
-        if(speakElias("This place looks abandoned... but the lights are still on.",3300)) eliasDialogueStage=5;
-      }else if(eliasDialogueStage===5&&z<-3.8){
-        if(speakElias("Wait... wasn't that door on the other side?",2900)) eliasDialogueStage=6;
-      }else if(eliasDialogueStage===6&&z<-7.8){
-        if(speakElias("No. No, that's impossible. I already walked past this.",3600)) eliasDialogueStage=7;
+      const moving=moveState.forward||moveState.back||moveState.left||moveState.right;
+
+      // 002 — after Elias actually begins moving away from his wake-up point.
+      if(eliasDialogueStage===1&&moving&&z<6.55){
+        if(speakElias("This isn't my apartment.",2200,null,1150)) eliasDialogueStage=2;
+
+      // 003 — first cautious call into the corridor.
+      }else if(eliasDialogueStage===2&&z<5.35){
+        if(speakElias("Hello? Is somebody there?",2400,null,1550)) eliasDialogueStage=3;
+
+      // 004 — give the empty building time to answer before Elias reacts.
+      }else if(eliasDialogueStage===3&&z<4.75){
+        if(speakElias("Great. Of course nobody answers.",2600,null,1200)) eliasDialogueStage=4;
+
+      // 005 — after the player has committed to exploring the abandoned hall.
+      }else if(eliasDialogueStage===4&&z<1.45&&!$('phoneOverlay').classList.contains('open')){
+        if(speakElias("This place looks abandoned... but the lights are still on.",3300,null,1300)) eliasDialogueStage=5;
+
+      // 006 — deeper into the corridor, when the repeated door layout becomes suspicious.
+      }else if(eliasDialogueStage===5&&z<-3.55){
+        if(speakElias("Wait... wasn't that door on the other side?",2900,null,1250)) eliasDialogueStage=6;
+
+      // 007 — hold the strongest realization until Elias is well past the earlier doors.
+      }else if(eliasDialogueStage===6&&z<-8.35){
+        if(speakElias("No. No, that's impossible. I already walked past this.",3600,null,1500)) eliasDialogueStage=7;
       }
+      if(activeSlotId&&eliasDialogueStage>0) saveSlotSnapshot();
     }
 
     // Environmental storytelling: once Elias actually walks into the hall,
@@ -4630,7 +4681,7 @@
         g.hollowFigure.visible=false;
         scareStart=0;
         toast('It is gone.');
-        speakElias("What was that?",2100,'surprised');
+        /* Elias stays silent here until a recorded clip is uploaded. */
       }
     }
 
@@ -4690,8 +4741,8 @@
     threeRunning=true;
     if(save.progress<=1&&eliasDialogueStage===0){
       setTimeout(()=>{
-        if(speakElias("Okay... where am I?",2200)) eliasDialogueStage=1;
-      },650);
+        if(speakElias("Okay... where am I?",2200,null,1250)) eliasDialogueStage=1;
+      },900);
     }
     threeGame.lastTime=performance.now();
     if(!threeGame.raf) threeGame.raf=requestAnimationFrame(animateThreeGame);
@@ -5217,7 +5268,7 @@
       $('storyText').textContent='Noah knew you would wake up here. The message is impossible to explain, but it gives you one direction: get out.';
       $('nextBtn').textContent='Continue exploring';
       toast('Objective updated — Find an exit');
-      speakElias("Noah... how did you know I'd wake up here?",3200,'nervous');
+        /* Elias stays silent here until a recorded clip is uploaded. */
       save.progress=Math.max(save.progress,4);
       persist();
       setTimeout(triggerFirstScare,520);
