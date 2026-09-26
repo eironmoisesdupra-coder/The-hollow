@@ -1694,6 +1694,61 @@
       .choice-title{margin-bottom:22px}
     }
 
+  
+    /* v0.35 fail-safe Door 307 scare overlay */
+    .door307-overlay{
+      position:absolute;inset:0;z-index:18;overflow:hidden;pointer-events:none;
+      opacity:0;visibility:hidden;
+      background:radial-gradient(circle at 50% 50%,rgba(0,0,0,.05),rgba(0,0,0,.26) 70%,rgba(0,0,0,.55))
+    }
+    .door307-overlay.active{visibility:visible;opacity:1;animation:door307OverlayFade 2.15s linear forwards}
+    @keyframes door307OverlayFade{0%,7%{opacity:0}14%,72%{opacity:1}88%{opacity:.82}100%{opacity:0}}
+    .door307-tentacles{position:absolute;left:50%;top:50%;width:1px;height:1px;transform:translate(-50%,-50%)}
+    .door307-tentacles i{
+      position:absolute;left:-7px;top:-4px;width:14px;height:56vh;border-radius:999px;
+      transform-origin:50% 100%;background:linear-gradient(180deg,#020202,#080808 42%,#000);
+      box-shadow:0 0 20px rgba(0,0,0,.9);opacity:0
+    }
+    .door307-overlay.active .door307-tentacles i{animation:tentacleBurst .72s cubic-bezier(.08,.72,.18,1) .22s forwards}
+    .door307-tentacles i:nth-child(1){transform:rotate(-80deg) translateY(-5vh)}
+    .door307-tentacles i:nth-child(2){transform:rotate(-58deg) translateY(-7vh);height:64vh}
+    .door307-tentacles i:nth-child(3){transform:rotate(-34deg) translateY(-4vh);height:61vh}
+    .door307-tentacles i:nth-child(4){transform:rotate(-12deg) translateY(-6vh);height:68vh}
+    .door307-tentacles i:nth-child(5){transform:rotate(15deg) translateY(-5vh);height:66vh}
+    .door307-tentacles i:nth-child(6){transform:rotate(38deg) translateY(-7vh);height:60vh}
+    .door307-tentacles i:nth-child(7){transform:rotate(62deg) translateY(-3vh);height:64vh}
+    .door307-tentacles i:nth-child(8){transform:rotate(82deg) translateY(-6vh);height:57vh}
+    @keyframes tentacleBurst{
+      0%{opacity:0;scale:.05 0;filter:blur(5px)}
+      28%{opacity:1;scale:.65 .55}
+      100%{opacity:.95;scale:1 1;filter:blur(0)}
+    }
+    .door307-maw{
+      position:absolute;left:50%;top:50%;width:min(34vw,360px);aspect-ratio:1.55/1;
+      transform:translate(-50%,-50%) scale(.06) rotate(-2deg);opacity:0;filter:drop-shadow(0 0 36px #000)
+    }
+    .door307-overlay.active .door307-maw{animation:mawRush .62s cubic-bezier(.12,.62,.08,1) .90s forwards}
+    @keyframes mawRush{
+      0%{opacity:0;transform:translate(-50%,-50%) scale(.06) rotate(-2deg)}
+      20%{opacity:1}
+      100%{opacity:1;transform:translate(-50%,-50%) scale(5.8) rotate(2deg)}
+    }
+    .maw-dark{
+      position:absolute;inset:0;border-radius:46% 54% 44% 56% / 52% 48% 54% 46%;
+      background:radial-gradient(ellipse at center,#000 0 42%,#070606 61%,#000 76%);
+      box-shadow:0 0 0 14px rgba(3,3,3,.96),0 0 55px #000
+    }
+    .maw-teeth{position:absolute;left:8%;right:8%;display:flex;justify-content:space-around;z-index:2}
+    .maw-teeth-top{top:8%}
+    .maw-teeth-bottom{bottom:8%;transform:rotate(180deg)}
+    .maw-teeth b{
+      display:block;width:7%;height:clamp(18px,5vw,58px);
+      background:linear-gradient(#d7d4c8,#837f74);clip-path:polygon(50% 100%,0 0,100% 0);
+      opacity:.88;filter:drop-shadow(0 2px 2px #000)
+    }
+    .maw-teeth b:nth-child(2n){height:70%;transform:translateY(4px) rotate(3deg)}
+    .maw-teeth b:nth-child(3n){transform:translateY(-2px) rotate(-4deg)}
+
   </style>
 </head>
 <body>
@@ -1836,6 +1891,20 @@
     <div class="prologue-scene"></div>
     <canvas id="game3d" class="game3d" aria-label="3D Hollow House hallway"></canvas>
     <div id="scareBlackout" class="scare-blackout" aria-hidden="true"></div>
+    <div id="door307Overlay" class="door307-overlay" aria-hidden="true">
+      <div class="door307-tentacles" aria-hidden="true">
+        <i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i>
+      </div>
+      <div class="door307-maw" aria-hidden="true">
+        <div class="maw-dark"></div>
+        <div class="maw-teeth maw-teeth-top">
+          <b></b><b></b><b></b><b></b><b></b><b></b><b></b>
+        </div>
+        <div class="maw-teeth maw-teeth-bottom">
+          <b></b><b></b><b></b><b></b><b></b><b></b><b></b>
+        </div>
+      </div>
+    </div>
     <div id="eliasDialogue" class="elias-dialogue" aria-live="polite">
       <span class="elias-dialogue-name">Elias</span>
       <span id="eliasDialogueText" class="elias-dialogue-text"></span>
@@ -1962,6 +2031,7 @@
   let elevatorCalledAt=0;
   let door307Cutscene=null;
   let activeDoor307Tension=null;
+  let door307FailsafeTimer=null;
   let eliasDialogueTimer=null;
   let activeEliasAudio=null;
   let eliasDialogueStage=0;
@@ -2284,6 +2354,33 @@
     setTimeout(()=>current.sources.forEach(src=>safeStop(src)),fade*1000+60);
   }
 
+
+  function playMonsterRoar(){
+    if(!save.sound||!ensureAudio()) return;
+    const now=audioCtx.currentTime;
+    const oscA=audioCtx.createOscillator();
+    const oscB=audioCtx.createOscillator();
+    const gain=audioCtx.createGain();
+    const noise=makeNoiseSource(false);
+    const bp=audioCtx.createBiquadFilter();
+    const ng=audioCtx.createGain();
+    oscA.type='sawtooth';
+    oscA.frequency.setValueAtTime(82,now);
+    oscA.frequency.exponentialRampToValueAtTime(37,now+.72);
+    oscB.type='triangle';
+    oscB.frequency.setValueAtTime(124,now);
+    oscB.frequency.exponentialRampToValueAtTime(54,now+.64);
+    gain.gain.setValueAtTime(.0001,now);
+    gain.gain.linearRampToValueAtTime(.075,now+.055);
+    gain.gain.exponentialRampToValueAtTime(.0001,now+.78);
+    bp.type='bandpass'; bp.frequency.value=420; bp.Q.value=.62;
+    ng.gain.setValueAtTime(.052,now);
+    ng.gain.exponentialRampToValueAtTime(.0001,now+.62);
+    oscA.connect(gain); oscB.connect(gain); gain.connect(sfxBus);
+    noise.connect(bp); bp.connect(ng); ng.connect(sfxBus);
+    oscA.start(now); oscB.start(now); noise.start(now);
+    oscA.stop(now+.82); oscB.stop(now+.76); noise.stop(now+.68);
+  }
 
   function playDistantKnock(){
     if(!save.sound||!ensureAudio()) return;
@@ -4195,6 +4292,45 @@
     setInteractionTarget(target);
   }
 
+  function finishDoor307Cutscene(force=false){
+    const g=threeGame;
+    if(door307FailsafeTimer){ clearTimeout(door307FailsafeTimer); door307FailsafeTimer=null; }
+
+    const overlay=$('door307Overlay');
+    if(overlay){ overlay.classList.remove('active'); overlay.setAttribute('aria-hidden','true'); }
+
+    if(!g){
+      door307Cutscene=null;
+      threeRunning=true;
+      $('game')?.classList.remove('door-cutscene');
+      return;
+    }
+
+    if(g.mouthGroup) g.mouthGroup.visible=false;
+    if(g.tentacleGroup) g.tentacleGroup.visible=false;
+
+    const black=$('scareBlackout');
+    if(black){ black.classList.remove('on'); black.style.opacity=''; }
+
+    if(door307Cutscene?.door) door307Cutscene.door.userData.targetRotation=0;
+
+    g.camera.position.set(0,g.baseY,6.4);
+    lookState.yaw=0; lookState.pitch=0; g.camera.rotation.set(0,0,0);
+
+    $('game').classList.remove('door-cutscene');
+    stopDoor307Tension(.12);
+    door307Cutscene=null;
+    threeRunning=true;
+    setInteractionTarget(null);
+
+    try{ if(g.raf) cancelAnimationFrame(g.raf); }catch(_){}
+    g.raf=0;
+    g.lastTime=performance.now();
+    g.raf=requestAnimationFrame(animateThreeGame);
+
+    if(force) toast('The hallway snaps back into place.');
+  }
+
   function startDoor307Cutscene(door){
     if(!threeGame||door307Cutscene) return;
 
@@ -4212,6 +4348,21 @@
     door.userData.targetRotation=door.userData.side>0?-1.12:1.12;
     playDoorOpen();
     startDoor307Tension();
+
+    const overlay=$('door307Overlay');
+    if(overlay){
+      overlay.classList.remove('active');
+      void overlay.offsetWidth;
+      overlay.classList.add('active');
+      overlay.setAttribute('aria-hidden','false');
+    }
+    setTimeout(playMonsterRoar,880);
+
+    if(door307FailsafeTimer) clearTimeout(door307FailsafeTimer);
+    door307FailsafeTimer=setTimeout(()=>{
+      if(door307Cutscene) finishDoor307Cutscene(true);
+    },2550);
+
     // Silent until a recorded Elias line exists for this moment.
 
     const camera=threeGame.camera;
@@ -4495,7 +4646,7 @@
         g.mouthGroup.visible=true;
         const raw=Math.min(1,(elapsed-980)/680);
         const rush=Math.pow(raw,.72);
-        if(black){ black.classList.remove('on'); black.style.opacity=String(Math.min(.97,.18+Math.pow(raw,.55)*.84)); }
+        if(black){ black.classList.remove('on'); black.style.opacity=String(Math.min(.68,.08+Math.pow(raw,.7)*.60)); }
 
         const forward=new THREE.Vector3(0,0,-1).applyQuaternion(g.camera.quaternion);
         const mouthEnd=g.camera.position.clone().add(forward.multiplyScalar(.055));
@@ -4518,16 +4669,7 @@
         if(g.tentacleGroup) g.tentacleGroup.visible=false;
       }else if(elapsed>=1840&&!cs.teleported){
         cs.teleported=true;
-        g.camera.position.set(0,g.baseY,6.4);
-        lookState.yaw=0; lookState.pitch=0; g.camera.rotation.set(0,0,0);
-        cs.door.userData.targetRotation=0;
-        if(black){ black.classList.remove('on'); black.style.opacity=''; }
-        if(g.tentacleGroup) g.tentacleGroup.visible=false;
-        $('game').classList.remove('door-cutscene');
-        stopDoor307Tension(.14);
-        door307Cutscene=null;
-        threeRunning=true;
-        setInteractionTarget(null);
+        finishDoor307Cutscene(false);
       }
     }
 
