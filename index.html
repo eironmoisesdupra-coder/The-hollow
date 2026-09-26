@@ -4561,9 +4561,27 @@
       g.camera.rotation.x=lookState.pitch+(moving?Math.sin(g.bob*.5)*.004:0);
     }
 
+    // Recorded Elias dialogue is paced by exploration. A line waits until the previous clip finishes.
+    if(threeRunning&&!door307Cutscene&&!activeEliasAudio&&!eliasDialogueTimer){
+      const z=g.camera.position.z;
+      if(eliasDialogueStage===1&&z<6.3){
+        if(speakElias("This isn't my apartment.",2200)) eliasDialogueStage=2;
+      }else if(eliasDialogueStage===2&&z<5.2){
+        if(speakElias("Hello? Is somebody there?",2400)) eliasDialogueStage=3;
+      }else if(eliasDialogueStage===3&&z<4.2){
+        if(speakElias("Great. Of course nobody answers.",2600)) eliasDialogueStage=4;
+      }else if(eliasDialogueStage===4&&phoneAutoTriggered&&!$('phoneOverlay').classList.contains('open')&&z<1.0){
+        if(speakElias("This place looks abandoned... but the lights are still on.",3300)) eliasDialogueStage=5;
+      }else if(eliasDialogueStage===5&&z<-3.8){
+        if(speakElias("Wait... wasn't that door on the other side?",2900)) eliasDialogueStage=6;
+      }else if(eliasDialogueStage===6&&z<-7.8){
+        if(speakElias("No. No, that's impossible. I already walked past this.",3600)) eliasDialogueStage=7;
+      }
+    }
+
     // Environmental storytelling: once Elias actually walks into the hall,
     // the phone buzzes automatically instead of relying on the old story panel.
-    if(threeRunning&&!door307Cutscene&&!phoneAutoTriggered&&g.camera.position.z<3.6){
+    if(threeRunning&&!door307Cutscene&&!phoneAutoTriggered&&eliasDialogueStage>=4&&g.camera.position.z<2.6){
       phoneAutoTriggered=true;
       save.progress=Math.max(save.progress,3);
       persist();
@@ -4670,8 +4688,10 @@
     $('game').classList.add('gameplay-live');
     $('storybox')?.setAttribute('aria-hidden','true');
     threeRunning=true;
-    if(save.progress<=1){
-      setTimeout(()=>speakElias("Okay... where am I?",2200,'nervous'),650);
+    if(save.progress<=1&&eliasDialogueStage===0){
+      setTimeout(()=>{
+        if(speakElias("Okay... where am I?",2200)) eliasDialogueStage=1;
+      },650);
     }
     threeGame.lastTime=performance.now();
     if(!threeGame.raf) threeGame.raf=requestAnimationFrame(animateThreeGame);
@@ -4722,7 +4742,8 @@
       maxLives:getDifficultyProfile().lives,
       updatedAt:Date.now(),
       createdAt:index>=0?(saveSlots[index].createdAt||Date.now()):Date.now(),
-      chapter:'Prologue • Wake Up'
+      chapter:'Prologue • Wake Up',
+      dialogueStage:eliasDialogueStage
     };
     if(index>=0) saveSlots[index]={...saveSlots[index],...snapshot};
     else saveSlots.unshift(snapshot);
@@ -4791,6 +4812,7 @@
     firstScareTriggered=save.progress>=5;
     energy=100;
     lastSprintUse=0;
+    eliasDialogueStage=Math.max(0,Math.min(7,Number(slot.dialogueStage)||0));
     applyDifficulty();
     localStorage.setItem('hollowSave',JSON.stringify(save));
     stopMenuAmbience(.3);
@@ -4821,6 +4843,7 @@
     flashlightOn=false;
     energy=100;
     lastSprintUse=0;
+    eliasDialogueStage=0;
     setSprint(false);
     applyDifficulty();
     saveSlotSnapshot();
