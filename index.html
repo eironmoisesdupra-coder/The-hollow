@@ -2283,6 +2283,20 @@
     setTimeout(()=>current.sources.forEach(src=>safeStop(src)),fade*1000+60);
   }
 
+  function playMonsterRoar(){
+    if(!save.sound||!ensureAudio()) return;
+    const now=audioCtx.currentTime, mix=audioCtx.createGain();
+    const low=audioCtx.createOscillator(), growl=audioCtx.createOscillator();
+    const noise=makeNoiseSource(false), filter=audioCtx.createBiquadFilter(), ng=audioCtx.createGain();
+    low.type='sawtooth'; low.frequency.setValueAtTime(62,now); low.frequency.exponentialRampToValueAtTime(34,now+.82);
+    growl.type='square'; growl.frequency.setValueAtTime(97,now); growl.frequency.exponentialRampToValueAtTime(49,now+.72);
+    filter.type='bandpass'; filter.frequency.setValueAtTime(520,now); filter.frequency.exponentialRampToValueAtTime(170,now+.8); filter.Q.value=.7;
+    ng.gain.value=.32;
+    mix.gain.setValueAtTime(.0001,now); mix.gain.linearRampToValueAtTime(.22,now+.07); mix.gain.exponentialRampToValueAtTime(.0001,now+.95);
+    low.connect(mix); growl.connect(mix); noise.connect(filter); filter.connect(ng); ng.connect(mix); mix.connect(sfxBus);
+    low.start(now); growl.start(now); noise.start(now); low.stop(now+1); growl.stop(now+1); noise.stop(now+1);
+  }
+
   function playDistantKnock(){
     if(!save.sound||!ensureAudio()) return;
     playTone(72,.10,.028,'sine',48);
@@ -3700,6 +3714,21 @@
 
     // Door 307 cutscene maw: an irregular shadow opening with depth,
     // asymmetrical teeth, and a layered dark throat. No bright/cartoon colors.
+    const tentacleGroup=new THREE.Group();
+    const tentacleMat=new THREE.MeshStandardMaterial({color:0x020202,roughness:.96,metalness:0});
+    for(let i=0;i<10;i++){
+      const angle=(i/10)*Math.PI*2+(i%2)*.17, reach=1.35+(i%4)*.32;
+      const curve=new THREE.CatmullRomCurve3([
+        new THREE.Vector3(0,0,0),
+        new THREE.Vector3(Math.cos(angle)*reach*.22,Math.sin(angle)*reach*.18,.08),
+        new THREE.Vector3(Math.cos(angle)*reach*.58,Math.sin(angle)*reach*.46,.18+(i%3)*.07),
+        new THREE.Vector3(Math.cos(angle)*reach,Math.sin(angle)*reach*.76,.34+(i%2)*.16)
+      ]);
+      const t=new THREE.Mesh(new THREE.TubeGeometry(curve,24,.065-(i%3)*.009,7,false),tentacleMat);
+      t.userData.phase=i*.73; tentacleGroup.add(t);
+    }
+    tentacleGroup.visible=false; tentacleGroup.scale.set(.02,.02,.02); scene.add(tentacleGroup);
+
     const mouthGroup=new THREE.Group();
 
     function buildMouthShape(scaleX=1,scaleY=1,irregularity=.08,segments=64){
@@ -4001,7 +4030,7 @@
 
     threeGame={
       renderer,scene,camera,ceilingLights,phoneRig,dustPoints,emergencyLight,
-      interactables,doorMeshes,callBox,callLight,sign,flashlight,hollowFigure,mouthGroup,
+      interactables,doorMeshes,callBox,callLight,sign,flashlight,hollowFigure,mouthGroup,tentacleGroup,
       puddles,roaches,mouse,
       raycaster:new THREE.Raycaster(),centerRay:new THREE.Vector2(0,0),
       lastTime:performance.now(),
@@ -4186,7 +4215,7 @@
     door.userData.targetRotation=door.userData.side>0?-1.12:1.12;
     playDoorOpen();
     startDoor307Tension();
-    speakElias("Wait... that's not a room.",2300,'surprised');
+    // Silent until a recorded Elias line exists for this moment.
 
     const camera=threeGame.camera;
     const startPos=camera.position.clone();
@@ -4217,8 +4246,16 @@
       targetYaw,
       mouthStart,
       teleported:false,
-      lastMouthSound:0
+      lastMouthSound:0,
+      roarPlayed:false
     };
+
+    if(threeGame.tentacleGroup){
+      threeGame.tentacleGroup.visible=true;
+      threeGame.tentacleGroup.position.copy(mouthStart);
+      threeGame.tentacleGroup.rotation.y=targetYaw;
+      threeGame.tentacleGroup.scale.set(.02,.02,.02);
+    }
 
     if(threeGame.mouthGroup){
       threeGame.mouthGroup.visible=false;
