@@ -1,4 +1,4 @@
-const CACHE='the-hollow-v36';
+const CACHE='the-hollow-v37';
 const ASSETS=[
   './index.html',
   './manifest.webmanifest',
