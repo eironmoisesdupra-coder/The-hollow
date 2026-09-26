@@ -1960,6 +1960,16 @@
   let door307Cutscene=null;
   let activeDoor307Tension=null;
   let eliasDialogueTimer=null;
+  let activeEliasAudio=null;
+  const ELIAS_AUDIO_BY_LINE={
+    "Okay... where am I?":"./assets/audio/elias/elias_001_where_am_i.mp3",
+    "This isn't my apartment.":"./assets/audio/elias/elias_002_not_my_apartment.mp3",
+    "Hello? Is somebody there?":"./assets/audio/elias/elias_003_somebody_there.mp3",
+    "Great. Of course nobody answers.":"./assets/audio/elias/elias_004_nobody_answers.mp3",
+    "This place looks abandoned... but the lights are still on.":"./assets/audio/elias/elias_005_place_looks_abandoned.mp3",
+    "Wait... wasn't that door on the other side?":"./assets/audio/elias/elias_006_door_other_side.mp3",
+    "No. No, that's impossible. I already walked past this.":"./assets/audio/elias/elias_007_already_walked_past_this.mp3"
+  };
   const moveState={forward:false,back:false,left:false,right:false};
   const lookState={active:false,pointerId:null,lastX:0,lastY:0,yaw:0,pitch:0};
   let sprintEnabled=false;
@@ -2332,6 +2342,28 @@
     }catch(_){}
   }
 
+  function stopEliasVoice(){
+    if(activeEliasAudio){
+      try{
+        activeEliasAudio.pause();
+        activeEliasAudio.currentTime=0;
+      }catch(_){}
+      activeEliasAudio=null;
+    }
+    if('speechSynthesis' in window){
+      try{window.speechSynthesis.cancel()}catch(_){}
+    }
+  }
+
+  function hideEliasDialogue(){
+    const box=$('eliasDialogue');
+    if(box) box.classList.remove('show');
+    if(eliasDialogueTimer){
+      clearTimeout(eliasDialogueTimer);
+      eliasDialogueTimer=null;
+    }
+  }
+
   function speakElias(line,duration=2600,emotion='normal'){
     const box=$('eliasDialogue');
     const textEl=$('eliasDialogueText');
@@ -2342,39 +2374,72 @@
       eliasDialogueTimer=null;
     }
 
+    stopEliasVoice();
     textEl.textContent=line;
     box.classList.add('show');
 
-    if(save.sound&&'speechSynthesis' in window){
-      try{
-        window.speechSynthesis.cancel();
-        const utter=new SpeechSynthesisUtterance(line);
-        const voice=pickEliasVoice();
-        if(voice) utter.voice=voice;
-        utter.lang=voice?.lang||'en-US';
+    const recordedPath=ELIAS_AUDIO_BY_LINE[line];
 
-        const profiles={
-          normal:{rate:.90,pitch:.86,volume:.88},
-          nervous:{rate:.97,pitch:.90,volume:.91},
-          surprised:{rate:1.02,pitch:.94,volume:.94},
-          angry:{rate:.92,pitch:.80,volume:.98},
-          afraid:{rate:.96,pitch:.88,volume:.93},
-          quiet:{rate:.84,pitch:.82,volume:.76}
-        };
-        const profile=profiles[emotion]||profiles.normal;
+    if(save.sound&&recordedPath){
+      const audio=new Audio(recordedPath);
+      activeEliasAudio=audio;
+      audio.preload='auto';
+      audio.volume=.96;
 
-        utter.rate=profile.rate;
-        utter.pitch=profile.pitch;
-        utter.volume=profile.volume;
+      const finish=()=>{
+        if(activeEliasAudio===audio) activeEliasAudio=null;
+        hideEliasDialogue();
+      };
 
-        window.speechSynthesis.speak(utter);
-      }catch(_){}
+      audio.addEventListener('ended',finish,{once:true});
+      audio.addEventListener('error',()=>{
+        if(activeEliasAudio===audio) activeEliasAudio=null;
+        playEliasFallbackSpeech(line,emotion);
+      },{once:true});
+
+      audio.play().then(()=>{
+        const safeDuration=Number.isFinite(audio.duration)&&audio.duration>0
+          ? Math.max(duration,audio.duration*1000+500)
+          : duration;
+        eliasDialogueTimer=setTimeout(finish,safeDuration);
+      }).catch(()=>{
+        if(activeEliasAudio===audio) activeEliasAudio=null;
+        playEliasFallbackSpeech(line,emotion);
+      });
+      return;
     }
+
+    if(save.sound) playEliasFallbackSpeech(line,emotion);
 
     eliasDialogueTimer=setTimeout(()=>{
       box.classList.remove('show');
       eliasDialogueTimer=null;
     },duration);
+  }
+
+  function playEliasFallbackSpeech(line,emotion='normal'){
+    if(!save.sound||!('speechSynthesis' in window)) return;
+    try{
+      window.speechSynthesis.cancel();
+      const utter=new SpeechSynthesisUtterance(line);
+      const voice=pickEliasVoice();
+      if(voice) utter.voice=voice;
+      utter.lang=voice?.lang||'en-US';
+
+      const profiles={
+        normal:{rate:.90,pitch:.86,volume:.88},
+        nervous:{rate:.97,pitch:.90,volume:.91},
+        surprised:{rate:1.02,pitch:.94,volume:.94},
+        angry:{rate:.92,pitch:.80,volume:.98},
+        afraid:{rate:.96,pitch:.88,volume:.93},
+        quiet:{rate:.84,pitch:.82,volume:.76}
+      };
+      const profile=profiles[emotion]||profiles.normal;
+      utter.rate=profile.rate;
+      utter.pitch=profile.pitch;
+      utter.volume=profile.volume;
+      window.speechSynthesis.speak(utter);
+    }catch(_){}
   }
 
   function playGlitchSound(){
@@ -4720,9 +4785,7 @@
     threeRunning=false;
     setInteractionTarget(null);
     stopDoor307Tension(.10);
-    if('speechSynthesis' in window){
-      try{window.speechSynthesis.cancel()}catch(_){}
-    }
+    stopEliasVoice();
     setSprint(false);
     Object.keys(moveState).forEach(k=>moveState[k]=false);
   }
