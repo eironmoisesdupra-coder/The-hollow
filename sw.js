@@ -1,5 +1,21 @@
-const CACHE='the-hollow-v32';
-const ASSETS=['./index.html','./manifest.webmanifest','./icon.svg','./assets/images/main-menu-bg.jpg','./assets/images/prologue-hallway-bg.png','./assets/images/loading-photo-noah-elias.png','./assets/images/loading-photo-elias-hollow.png','./vendor/three.min.js'];
+const CACHE='the-hollow-v33';
+const ASSETS=[
+  './index.html',
+  './manifest.webmanifest',
+  './icon.svg',
+  './assets/images/main-menu-bg.jpg',
+  './assets/images/prologue-hallway-bg.png',
+  './assets/images/loading-photo-noah-elias.png',
+  './assets/images/loading-photo-elias-hollow.png',
+  './assets/audio/elias/elias_001_where_am_i.mp3',
+  './assets/audio/elias/elias_002_not_my_apartment.mp3',
+  './assets/audio/elias/elias_003_somebody_there.mp3',
+  './assets/audio/elias/elias_004_nobody_answers.mp3',
+  './assets/audio/elias/elias_005_place_looks_abandoned.mp3',
+  './assets/audio/elias/elias_006_door_other_side.mp3',
+  './assets/audio/elias/elias_007_already_walked_past_this.mp3',
+  './vendor/three.min.js'
+];
 
 self.addEventListener('install',event=>{
   event.waitUntil(
