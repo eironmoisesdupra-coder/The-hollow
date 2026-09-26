@@ -1618,6 +1618,9 @@
     .save-slot-title{display:block;font:700 16px Georgia,'Times New Roman',serif;letter-spacing:.18em}
     .save-slot-meta{display:block;margin-top:7px;color:rgba(245,245,240,.5);font:600 9px Georgia,'Times New Roman',serif;letter-spacing:.17em;text-transform:uppercase}
     .save-slot-memory{display:block;margin-top:7px;color:rgba(245,245,240,.34);font:italic 11px Georgia,'Times New Roman',serif;letter-spacing:.06em}
+    .save-slot-row{display:grid;grid-template-columns:1fr auto;gap:9px;align-items:stretch}
+    .delete-memory{min-width:58px;border:1px solid rgba(255,255,255,.2);background:rgba(0,0,0,.64);color:#eee;font:700 9px Georgia,'Times New Roman',serif;letter-spacing:.12em;clip-path:polygon(5% 0,100% 7%,94% 96%,0 100%);transform:rotate(.8deg)}
+    .delete-memory:active{background:#171717;transform:rotate(-.5deg) scale(.97)}
     .no-saves{text-align:center;color:rgba(235,235,230,.38);font:600 12px Georgia,'Times New Roman',serif;letter-spacing:.27em;padding:42px 10px}
 
     /* difficulty darkness affects only the hallway art, not the HUD */
@@ -4728,8 +4731,30 @@
         '<span class="save-slot-meta">'+profile.label+' • '+profile.lives+' '+(profile.lives===1?'LIFE':'LIVES')+' • '+(slot.chapter||'PROLOGUE • WAKE UP')+'</span>'+
         '<span class="save-slot-memory">'+stamp+'</span>';
       btn.addEventListener('click',()=>continueFromSlot(slot.id));
-      list.appendChild(btn);
+      const row=document.createElement('div');
+      row.className='save-slot-row';
+      const del=document.createElement('button');
+      del.type='button';
+      del.className='delete-memory';
+      del.textContent='DELETE';
+      del.addEventListener('click',event=>{ event.stopPropagation(); deleteMemorySlot(slot.id); });
+      row.append(btn,del);
+      list.appendChild(row);
     });
+  }
+
+  function deleteMemorySlot(id){
+    if(!saveSlots.some(item=>item.id===id)) return;
+    if(!confirm('Delete this memory permanently?')) return;
+    saveSlots=saveSlots.filter(item=>item.id!==id);
+    localStorage.setItem('hollowSaveSlots',JSON.stringify(saveSlots));
+    if(activeSlotId===id){
+      activeSlotId=null; save.activeSlotId=null; save.progress=0;
+      localStorage.setItem('hollowSave',JSON.stringify(save));
+    }
+    renderContinueSlots();
+    $('continueBtn').disabled=saveSlots.length===0;
+    toast('Memory deleted');
   }
 
   function continueFromSlot(id){
