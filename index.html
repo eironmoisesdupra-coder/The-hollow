@@ -1961,6 +1961,7 @@
   let activeDoor307Tension=null;
   let eliasDialogueTimer=null;
   let activeEliasAudio=null;
+  let eliasDialogueStage=0;
   const ELIAS_AUDIO_BY_LINE={
     "Okay... where am I?":"./assets/audio/elias/elias_001_where_am_i.mp3",
     "This isn't my apartment.":"./assets/audio/elias/elias_002_not_my_apartment.mp3",
@@ -2286,160 +2287,35 @@
     setTimeout(()=>playTone(74,.09,.021,'sine',46),430);
   }
 
-  function pickEliasVoice(){
-    if(!('speechSynthesis' in window)) return null;
-    const voices=window.speechSynthesis.getVoices()||[];
-    if(!voices.length) return null;
-
-    const preferredMaleNames=[
-      /google uk english male/i,
-      /microsoft guy/i,
-      /microsoft ryan/i,
-      /microsoft christopher/i,
-      /microsoft eric/i,
-      /microsoft andrew/i,
-      /microsoft brian/i,
-      /microsoft david/i,
-      /microsoft mark/i,
-      /daniel/i,
-      /arthur/i,
-      /oliver/i,
-      /liam/i,
-      /ryan/i,
-      /david/i,
-      /male/i
-    ];
-    const naturalHints=/natural|neural|enhanced|premium|online|studio/i;
-    const femaleHints=/female|zira|samantha|victoria|karen|moira|fiona|susan|hazel|heera|veena|aria|jenny/i;
-
-    const scored=voices.map(voice=>{
-      const name=voice.name||'';
-      const lang=voice.lang||'';
-      let score=0;
-
-      if(/^en/i.test(lang)) score+=18;
-      if(/en-US|en-GB|en-AU|en-CA/i.test(lang)) score+=4;
-      if(/google|microsoft|samsung|android/i.test(name)) score+=5;
-      if(naturalHints.test(name)) score+=16;
-      if(voice.localService) score+=2;
-
-      preferredMaleNames.forEach((re,index)=>{
-        if(re.test(name)) score+=30-index;
-      });
-
-      if(femaleHints.test(name)) score-=45;
-
-      return {voice,score};
-    }).sort((a,b)=>b.score-a.score);
-
-    return scored[0]?.voice||voices.find(v=>/^en/i.test(v.lang||''))||voices[0];
-  }
-
-  if('speechSynthesis' in window){
-    try{
-      window.speechSynthesis.getVoices();
-      window.speechSynthesis.onvoiceschanged=()=>window.speechSynthesis.getVoices();
-    }catch(_){}
-  }
-
   function stopEliasVoice(){
     if(activeEliasAudio){
-      try{
-        activeEliasAudio.pause();
-        activeEliasAudio.currentTime=0;
-      }catch(_){}
+      try{ activeEliasAudio.pause(); activeEliasAudio.currentTime=0; }catch(_){}
       activeEliasAudio=null;
-    }
-    if('speechSynthesis' in window){
-      try{window.speechSynthesis.cancel()}catch(_){}
     }
   }
 
   function hideEliasDialogue(){
     const box=$('eliasDialogue');
     if(box) box.classList.remove('show');
-    if(eliasDialogueTimer){
-      clearTimeout(eliasDialogueTimer);
-      eliasDialogueTimer=null;
-    }
+    if(eliasDialogueTimer){ clearTimeout(eliasDialogueTimer); eliasDialogueTimer=null; }
   }
 
-  function speakElias(line,duration=2600,emotion='normal'){
-    const box=$('eliasDialogue');
-    const textEl=$('eliasDialogueText');
-    if(!box||!textEl) return;
-
-    if(eliasDialogueTimer){
-      clearTimeout(eliasDialogueTimer);
-      eliasDialogueTimer=null;
-    }
-
-    stopEliasVoice();
-    textEl.textContent=line;
-    box.classList.add('show');
-
-    const recordedPath=ELIAS_AUDIO_BY_LINE[line];
-
-    if(save.sound&&recordedPath){
-      const audio=new Audio(recordedPath);
-      activeEliasAudio=audio;
-      audio.preload='auto';
-      audio.volume=.96;
-
-      const finish=()=>{
-        if(activeEliasAudio===audio) activeEliasAudio=null;
-        hideEliasDialogue();
-      };
-
-      audio.addEventListener('ended',finish,{once:true});
-      audio.addEventListener('error',()=>{
-        if(activeEliasAudio===audio) activeEliasAudio=null;
-        playEliasFallbackSpeech(line,emotion);
-      },{once:true});
-
-      audio.play().then(()=>{
-        const safeDuration=Number.isFinite(audio.duration)&&audio.duration>0
-          ? Math.max(duration,audio.duration*1000+500)
-          : duration;
-        eliasDialogueTimer=setTimeout(finish,safeDuration);
-      }).catch(()=>{
-        if(activeEliasAudio===audio) activeEliasAudio=null;
-        playEliasFallbackSpeech(line,emotion);
-      });
-      return;
-    }
-
-    if(save.sound) playEliasFallbackSpeech(line,emotion);
-
-    eliasDialogueTimer=setTimeout(()=>{
-      box.classList.remove('show');
-      eliasDialogueTimer=null;
-    },duration);
-  }
-
-  function playEliasFallbackSpeech(line,emotion='normal'){
-    if(!save.sound||!('speechSynthesis' in window)) return;
-    try{
-      window.speechSynthesis.cancel();
-      const utter=new SpeechSynthesisUtterance(line);
-      const voice=pickEliasVoice();
-      if(voice) utter.voice=voice;
-      utter.lang=voice?.lang||'en-US';
-
-      const profiles={
-        normal:{rate:.90,pitch:.86,volume:.88},
-        nervous:{rate:.97,pitch:.90,volume:.91},
-        surprised:{rate:1.02,pitch:.94,volume:.94},
-        angry:{rate:.92,pitch:.80,volume:.98},
-        afraid:{rate:.96,pitch:.88,volume:.93},
-        quiet:{rate:.84,pitch:.82,volume:.76}
-      };
-      const profile=profiles[emotion]||profiles.normal;
-      utter.rate=profile.rate;
-      utter.pitch=profile.pitch;
-      utter.volume=profile.volume;
-      window.speechSynthesis.speak(utter);
-    }catch(_){}
+  function speakElias(line,duration=2600){
+    const box=$('eliasDialogue'), textEl=$('eliasDialogueText');
+    if(!box||!textEl) return false;
+    const path=ELIAS_AUDIO_BY_LINE[line];
+    if(!path||!save.sound||activeEliasAudio||eliasDialogueTimer) return false;
+    textEl.textContent=line; box.classList.add('show');
+    const audio=new Audio(path);
+    activeEliasAudio=audio; audio.preload='auto'; audio.volume=.96;
+    const finish=()=>{ if(activeEliasAudio===audio) activeEliasAudio=null; hideEliasDialogue(); };
+    audio.addEventListener('ended',finish,{once:true});
+    audio.addEventListener('error',finish,{once:true});
+    audio.play().then(()=>{
+      const ms=Number.isFinite(audio.duration)&&audio.duration>0?Math.max(duration,audio.duration*1000+350):duration;
+      eliasDialogueTimer=setTimeout(finish,ms);
+    }).catch(finish);
+    return true;
   }
 
   function playGlitchSound(){
